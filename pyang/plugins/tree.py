@@ -64,8 +64,8 @@ class TreePlugin(plugin.PyangPlugin):
             )
         if plugin.is_plugin_registered('structure'):
             optlist.append(
-                optparse.make_option("--tree-print-structure",
-                                     dest="tree_print_structure",
+                optparse.make_option("--tree-print-structures",
+                                     dest="tree_print_structures",
                                      action="store_true",
                                      help="Print ietf-yang-structure-ext" +
                                      ":strcuture")
@@ -262,7 +262,7 @@ def emit_tree(ctx, modules, fd, depth, llen, path):
                                    ctx.opts.tree_no_expand_uses,
                                    prefix_with_modname=ctx.opts.modname_prefix)
 
-        if ctx.opts.tree_print_structure:
+        if ctx.opts.tree_print_structures:
             sxs = module.search(('ietf-yang-structure-ext', 'structure'))
             if len(sxs) > 0:
                 if not printed_header:
