@@ -279,6 +279,24 @@ def emit_tree(ctx, modules, fd, depth, llen, path):
                                    ctx.opts.tree_no_expand_uses,
                                    prefix_with_modname=ctx.opts.modname_prefix)
 
+            sxs = module.search(('ietf-yang-structure-ext',
+                                 'augment-structure'))
+            if len(sxs) > 0:
+                if not printed_header:
+                    print_header()
+                    printed_header = True
+                section_delimiter_printed = False
+                for sx in sxs:
+                    if not section_delimiter_printed:
+                        fd.write('\n')
+                        section_delimiter_printed = True
+                    fd.write("  augment-structure %s:\n" % sx.arg)
+                    print_children(sx.i_children, module, fd, '  ', path,
+                                   'structure', depth, llen,
+                                   ctx.opts.tree_no_expand_uses,
+                                   prefix_with_modname=ctx.opts.modname_prefix)
+
+
 def unexpand_uses(i_children):
     res = []
     uses = []

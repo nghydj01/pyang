@@ -31,6 +31,10 @@ def pyang_plugin_init():
     statements.add_data_keyword(sx)
     statements.add_keyword_with_children(sx)
     statements.add_keywords_with_no_explicit_config(sx)
+    asx = (module_name, 'augment-structure')
+    statements.add_data_keyword(asx)
+    statements.add_keyword_with_children(asx)
+    statements.add_keywords_with_no_explicit_config(asx)
 
     # Register the special grammar
     for (stmt, occurance, (arg, rules), add_to_stmts) in structure_stmts:
@@ -42,7 +46,7 @@ body_stmts = [
     ('description', '?'),
     ('reference', '?')] + grammar.data_def_stmts
 
-## FIXME: handle augment-structure
+## FIXME: validate augment-structure
 
 structure_stmts = [
 
@@ -52,6 +56,10 @@ structure_stmts = [
 
     ('structure', '*',
      ('identifier', body_stmts),
+     ['module', 'submodule']),
+
+    ('augment-structure', '*',
+     ('absolute-schema-nodeid', body_stmts),
      ['module', 'submodule']),
 
 ]
