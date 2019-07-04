@@ -44,7 +44,9 @@ def pyang_plugin_init():
 
 body_stmts = [
     ('description', '?'),
-    ('reference', '?')] + grammar.data_def_stmts
+    ('reference', '?'),
+    ('$interleave', grammar.data_def_stmts)
+    ]
 
 ## FIXME: validate augment-structure
 
