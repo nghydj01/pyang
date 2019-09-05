@@ -20,6 +20,11 @@ class CatsPlugin(plugin.PyangPlugin):
         plugin.PyangPlugin.__init__(self, 'cats')
         self.doc = mndom.Document()
         self.elemens = {}
+        self.buildinType = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
+                           "decimal64","string","boolean","enumeration","bit", "binary","leafref",
+                           "identityref","empty","union","instance-identifier"]
+        self.integerTye = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
+                           "decimal64"]
 
     def add_output_format(self, fmts):
         self.multiple_modules = True
@@ -35,6 +40,22 @@ class CatsPlugin(plugin.PyangPlugin):
                                  type="string",
                                  dest="cats_prefix",
                                  help="the prefix of cats object"),
+            optparse.make_option("--cats-platform-name",
+                                 type="string",
+                                 dest="cats_platform_name",
+                                 help="the platform name"),
+            optparse.make_option("--cats-platform-release",
+                                 type="string",
+                                 dest="cats_platform_release",
+                                 help="the platform release number"),
+            optparse.make_option("--cats-product-name",
+                                 type="string",
+                                 dest="cats_product_name",
+                                 help="the product name"),
+            optparse.make_option("--cats-product-release",
+                                 type="string",
+                                 dest="cats_product_release",
+                                 help="the product release"),
             ]
         g = optparser.add_option_group("Cats output specific options")
         g.add_options(optlist)
@@ -168,25 +189,62 @@ class CatsPlugin(plugin.PyangPlugin):
     
     def print_node(self, s, module, platformnode, mode, parentnode):
         
-        def createElement(name, nodeType):
+        def createElement(parent, name, nodeType):
+            parentname=''
+            if parent is not None:
+                parentname=parent.getAttribute("name")
+                nodename = parentname + "_" + name
+            else:
+                nodename = self.name_prefix + "_" + name
             childxmlnode = self.doc.createElement("object")
-            childxmlnode.setAttribute("name", self.name_prefix + re.sub('-', '_', name))
+            childxmlnode.setAttribute("name", nodename)
             childxmlnode.setAttribute("nodeType", nodeType)
             childxmlnode.setAttribute("__name",name)
             childxmlnode.setAttribute("objectType","xmlBean")
             childxmlnode.setAttribute("anto-create","yes")
             childxmlnode.setAttribute("extends","CommonXMLBean")
             return childxmlnode
+        
+        def createElementWithNameValue(elemname, name, value):
+            anode = self.doc.createElement(elemname)
+            anode.setAttribute("name", name)
+            anode.setAttribute("value", value)
+            return anode
+        
+        def addMetaInfo(xmlnode, module):
+            metainfonode = self.doc.createElement("metaInfo")
+            ns = module.search_one('namespace')
+            if ns is not None:
+                nsstr = ns.arg
+            pr = module.search_one('prefix')
+            if pr is not None:
+                prstr = pr.arg
+            metainfonode.appendChild(createElementWithNameValue("metaInfo", "__prefix", prstr))
+            metainfonode.appendChild(createElementWithNameValue("metaInfo", "__uri", nsstr))
+            metainfonode.appendChild(createElementWithNameValue("metaInfo", "__declaredNS_prefix", "netconf"))
+            metainfonode.appendChild(createElementWithNameValue("metaInfo", "__declaredNS_URI", "urn:ietf:params:xml:ns:netconf:base:1.0"))
+            xmlnode.appendChild(metainfonode)
 
-        def createAttribute(name, type):
+        def createAttribute(name, typestr):
             childxmlnode = self.doc.createElement("attribute")
             childxmlnode.setAttribute("name", name)
             tmpnode = self.doc.createElement("value")
-            if type == '':
+            if typestr == '':
                 tmpnode.setAttribute('type', "string")
             else:
+                types = typestr.split("\n")
+                type = types[0]
+                types = types[1:]
+                if type not in self.buildinType:
+                    type = types[0]
+                    types = types[1]
+                if type not in self.buildinType:
+                    print("type string:%s is not buildin type" % typestr)
+                    sys.exit(1)
+                
+            else:
                 tmpnode.setAttribute("type","format")
-                tmpnode.setAttribute("format",type)
+                tmpnode.setAttribute("format",typestr)
             childxmlnode.appendChild(tmpnode)
             return childxmlnode
 
@@ -275,6 +333,15 @@ class CatsPlugin(plugin.PyangPlugin):
                     addnode = addAction(parent,"set")  
             addnode.appendChild(childNode)
         
+        def updateRelationship(parent,child):
+            metaInfos = child.getElementsByTagName("metaInfo");
+            if metaInfos is None or len(metaInfos) == 0:
+                metaInfo = self.doc.createElement("metaInfo")
+            else:
+                metaInfo = metaInfos[0]
+            metaInfo.appendChild(createElementWithNameValue("metaInfo", "super", parent.getAttribute("name")))
+            child.appendChild(metaInfo)  
+                      
         if s.i_module.i_modulename == module.i_modulename:
             name = s.arg
         else:
@@ -282,24 +349,31 @@ class CatsPlugin(plugin.PyangPlugin):
         flags = get_flags_str(s, mode)
         
         if s.keyword == 'list':
-            childxmlnode = createElement(name,"list")
+            childxmlnode = createElement(parentnode, name,"list")
             platformnode.appendChild(childxmlnode)
             if parentnode is not None:
                 addElementAttribute(parentnode, childxmlnode)
+                updateRelationship(parentnode,childxmlnode)
+            else:
+                addMetaInfo(childxmlnode, module)
         elif s.keyword == 'container':
-            childxmlnode = createElement(name,"container")
+            childxmlnode = createElement(parentnode, name,"container")
             p = s.search_one('presence')
             if p is not None:
                 childxmlnode.setAttribute("presence","yes")
             platformnode.appendChild(childxmlnode)
             if parentnode is not None:
                 setElementAttribute(parentnode, childxmlnode)
+                updateRelationship(parentnode,childxmlnode)
+            else:
+                addMetaInfo(childxmlnode, module)
         elif s.keyword  == 'choice':
             childxmlnode = parentnode
         elif s.keyword == 'case':
             childxmlnode = parentnode
         else:
-            t = get_typename(s, False)
+#             t = get_typename(s, False)
+            t = typestring(s)
             childxmlnode = createAttribute(name, t)
             if s.keyword == 'leaf-list':
                 addAttribute(parentnode,childxmlnode)
@@ -527,3 +601,80 @@ def get_typename(s, prefix_with_modname=False):
         return '<anyxml>'
     else:
         return ''
+
+def typestring(node):
+
+    def get_nontypedefstring(node):
+        s = ""
+        found  = False
+        t = node.search_one('type')
+        if t is not None:
+            s = t.arg + '\n'
+            if t.arg == 'enumeration':
+                found = True
+                s = s + ' '
+                for enums in t.substmts:
+                    s = s + enums.arg + ','
+                s = s + ' '
+            elif t.arg == 'leafref':
+                found = True
+                s = s + ' : '
+                p = t.search_one('path')
+                if p is not None:
+                    s = s + p.arg
+
+            elif t.arg == 'identityref':
+                found = True
+                b = t.search_one('base')
+                if b is not None:
+                    s = s + ' {' + b.arg + '}'
+
+            elif t.arg == 'union':
+                found = True
+                uniontypes = t.search('type')
+                s = s + '' + uniontypes[0].arg
+                for uniontype in uniontypes[1:]:
+                    s = s + ', ' + uniontype.arg
+                s = s + ''
+
+            typerange = t.search_one('range')
+            if typerange is not None:
+                found = True
+                s = s + ' [' + typerange.arg + ']'
+            length = t.search_one('length')
+            if length is not None:
+                found = True
+                s = s + ' {length = ' + length.arg + '}'
+
+            pattern = t.search_one('pattern')
+            if pattern is not None: # truncate long patterns
+                found = True
+                s = s + ' {pattern = ' + pattern.arg + '}'
+        return s
+
+    s = get_nontypedefstring(node)
+
+    if s != "":
+        t = node.search_one('type')
+        # chase typedef
+        type_namespace = None
+        i_type_name = None
+        name = t.arg
+        if name.find(":") == -1:
+            prefix = None
+        else:
+            [prefix, name] = name.split(':', 1)
+        if prefix is None or t.i_module.i_prefix == prefix:
+            # check local typedefs
+            pmodule = node.i_module
+            typedef = statements.search_typedef(t, name)
+        else:
+            # this is a prefixed name, check the imported modules
+            err = []
+            pmodule = statements.prefix_to_module(t.i_module,prefix,t.pos,err)
+            if pmodule is None:
+                return
+            typedef = statements.search_typedef(pmodule, name)
+        if typedef != None:
+            s = s + get_nontypedefstring(typedef)
+    return s
