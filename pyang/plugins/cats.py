@@ -196,6 +196,7 @@ class CatsPlugin(plugin.PyangPlugin):
                 nodename = parentname + "_" + name
             else:
                 nodename = self.name_prefix + "_" + name
+            nodename = re.sub("org-openroadm-",'',nodename)
             childxmlnode = self.doc.createElement("object")
             childxmlnode.setAttribute("name", nodename)
             childxmlnode.setAttribute("nodeType", nodeType)
@@ -237,14 +238,34 @@ class CatsPlugin(plugin.PyangPlugin):
                 types = types[1:]
                 if type not in self.buildinType:
                     type = types[0]
-                    types = types[1]
+                    types = types[1:]
                 if type not in self.buildinType:
                     print("type string:%s is not buildin type" % typestr)
                     sys.exit(1)
-                
-            else:
-                tmpnode.setAttribute("type","format")
-                tmpnode.setAttribute("format",typestr)
+                if types is not None and len(types) > 0:
+                    hinttype = type + " " + types[0]
+                else:
+                    hinttype = type
+                if type in self.integerTye:
+                    tmpnode.setAttribute("type", "integer")
+                    tmpnode.setAttribute("range", hinttype)
+                elif type == "enumeration":
+                    if types is not None and len(types) > 0:
+                        enums = types[0].split(",")
+                        if enums is not None and len(enums) > 0:
+                            tmpnode.setAttribute("type","enum")
+                            for enum in enums:
+                                if enum.strip() == '':
+                                    continue
+                                option = self.doc.createElement("option")
+                                option.setAttribute("name", enum.strip())
+                                tmpnode.appendChild(option)
+                        else:
+                            tmpnode.setAttribute("type","format")
+                            tmpnode.setAttribute("format", hinttype)                
+                else: 
+                    tmpnode.setAttribute("type","format")
+                    tmpnode.setAttribute("format", hinttype)
             childxmlnode.appendChild(tmpnode)
             return childxmlnode
 
