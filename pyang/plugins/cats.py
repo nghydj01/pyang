@@ -19,7 +19,7 @@ class CatsPlugin(plugin.PyangPlugin):
     def __init__(self):
         plugin.PyangPlugin.__init__(self, 'cats')
         self.doc = mndom.Document()
-        self.elemens = {}
+        self.maps = {}
         self.buildinType = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
                            "decimal64","string","boolean","enumeration","bit", "binary","leafref",
                            "identityref","empty","union","instance-identifier"]
@@ -78,7 +78,7 @@ class CatsPlugin(plugin.PyangPlugin):
         platform.setAttribute("release" , "1.0")
         self.doc.appendChild(platform)
         self.emit_tree(platform, ctx, modules)
-        self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
+#        self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
 
     def emit_tree(self, platformnode, ctx, modules):
         for module in modules:    
@@ -121,25 +121,13 @@ class CatsPlugin(plugin.PyangPlugin):
 #             rpcs = [ch for ch in module.i_children
 #                     if ch.keyword == 'rpc']
 #             if len(rpcs) > 0:
-#                 if not printed_header:
-#                     print_header()
-#                     printed_header = True
-#                 fd.write("\n  rpcs:\n")
-#                 self.print_children(rpcs, module, fd, '  ', rpath, 'rpc', depth, llen,
-#                                ctx.opts.tree_no_expand_uses,
-#                                prefix_with_modname=ctx.opts.modname_prefix)
-#     
+#                 self.print_children(rpcs, module, platformnode, 'rpc', None)
+#      
 #             notifs = [ch for ch in module.i_children
 #                       if ch.keyword == 'notification']
 #             if len(notifs) > 0:
-#                 if not printed_header:
-#                     print_header()
-#                     printed_header = True
-#                 fd.write("\n  notifications:\n")
-#                 self.print_children(notifs, module, fd, '  ', npath,
-#                                'notification', depth, llen,
-#                                ctx.opts.tree_no_expand_uses,
-#                                prefix_with_modname=ctx.opts.modname_prefix)
+#                 self.print_children(notifs, module, platformnode,
+#                                'notification', None)
 #     
 #             if ctx.opts.tree_print_groupings:
 #                 section_delimiter_printed = False
@@ -185,10 +173,11 @@ class CatsPlugin(plugin.PyangPlugin):
                     mode = 'input'
                 elif ch.keyword == 'output':
                     mode = 'output'
+                    continue #we don't care output
                 self.print_node(ch, module, platformnode, mode, parentnode)
     
     def print_node(self, s, module, platformnode, mode, parentnode):
-        
+
         def createElement(parent, name, nodeType):
             parentname=''
             if parent is not None:
@@ -362,13 +351,17 @@ class CatsPlugin(plugin.PyangPlugin):
                 metaInfo = metaInfos[0]
             metaInfo.appendChild(createElementWithNameValue("metaInfo", "super", parent.getAttribute("name")))
             child.appendChild(metaInfo)  
-                      
-        if s.i_module.i_modulename == module.i_modulename:
-            name = s.arg
-        else:
-            name = s.i_module.i_prefix + ':' + s.arg
-        flags = get_flags_str(s, mode)
         
+        name = s.arg
+        if s.i_module.i_modulename == module.i_modulename:
+            tmpmodule = module
+        else:
+            tmpmodule = s.i_module
+        flags = get_flags_str(s, mode)
+        print("%s %s -> module(%s)%s -> parent(%s).module:%s" % 
+              (s.keyword, s.arg, s.i_module.i_prefix, s.i_module.arg,
+               s.parent.keyword,
+                s.parent.i_module))
         if s.keyword == 'list':
             childxmlnode = createElement(parentnode, name,"list")
             platformnode.appendChild(childxmlnode)
@@ -377,6 +370,12 @@ class CatsPlugin(plugin.PyangPlugin):
                 updateRelationship(parentnode,childxmlnode)
             else:
                 addMetaInfo(childxmlnode, module)
+            mynode = self.maps.get(s)
+            if mynode is None:
+                self.maps[s] = childxmlnode
+            else:
+                print("node %s has been there " % s.arg)
+                sys.exit(1)
         elif s.keyword == 'container':
             childxmlnode = createElement(parentnode, name,"container")
             p = s.search_one('presence')
@@ -388,9 +387,15 @@ class CatsPlugin(plugin.PyangPlugin):
                 updateRelationship(parentnode,childxmlnode)
             else:
                 addMetaInfo(childxmlnode, module)
+        elif s.keyword == "rpc":
+            pass
+        elif s.keyword == "notification":
+            pass
         elif s.keyword  == 'choice':
             childxmlnode = parentnode
         elif s.keyword == 'case':
+            childxmlnode = parentnode
+        elif s.keyword == 'input':
             childxmlnode = parentnode
         else:
 #             t = get_typename(s, False)
@@ -419,6 +424,7 @@ class CatsPlugin(plugin.PyangPlugin):
                 self.print_children(chs, module, platformnode, mode, childxmlnode)
             else:
                 self.print_children(chs, module, platformnode, mode, childxmlnode)
+                      
 
 def print_help():
     print("""
