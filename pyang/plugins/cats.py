@@ -78,7 +78,7 @@ class CatsPlugin(plugin.PyangPlugin):
         platform.setAttribute("release" , "1.0")
         self.doc.appendChild(platform)
         self.emit_tree(platform, ctx, modules)
-#        self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
+        self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
 
     def emit_tree(self, platformnode, ctx, modules):
         for module in modules:    
@@ -118,16 +118,16 @@ class CatsPlugin(plugin.PyangPlugin):
 #                                        ctx.opts.tree_no_expand_uses,
 #                                        prefix_with_modname=ctx.opts.modname_prefix)
 #     
-#             rpcs = [ch for ch in module.i_children
-#                     if ch.keyword == 'rpc']
-#             if len(rpcs) > 0:
-#                 self.print_children(rpcs, module, platformnode, 'rpc', None)
-#      
-#             notifs = [ch for ch in module.i_children
-#                       if ch.keyword == 'notification']
-#             if len(notifs) > 0:
-#                 self.print_children(notifs, module, platformnode,
-#                                'notification', None)
+            rpcs = [ch for ch in module.i_children
+                    if ch.keyword == 'rpc']
+            if len(rpcs) > 0:
+                self.print_children(rpcs, module, platformnode, 'rpc', None)
+      
+            notifs = [ch for ch in module.i_children
+                      if ch.keyword == 'notification']
+            if len(notifs) > 0:
+                self.print_children(notifs, module, platformnode,
+                               'notification', None)
 #     
 #             if ctx.opts.tree_print_groupings:
 #                 section_delimiter_printed = False
@@ -178,17 +178,29 @@ class CatsPlugin(plugin.PyangPlugin):
     
     def print_node(self, s, module, platformnode, mode, parentnode):
 
-        def createElement(parent, name, nodeType):
-            parentname=''
+        def createElement(parent, name, nodetype):
+            assert nodetype == "list" or nodetype == "container" or nodetype == "rpc" or nodetype == "notification"
+            if nodetype == "list" or nodetype == "container":
+                middlename = ''
+            else:
+                middlename = nodetype
+            prefix = ''
+            if self.name_prefix != '':
+                prefix = self.name_prefix + '_'
+            if middlename != '':
+                prefix = prefix + middlename + '_'
             if parent is not None:
                 parentname=parent.getAttribute("name")
-                nodename = parentname + "_" + name
-            else:
-                nodename = self.name_prefix + "_" + name
+                prefix = parentname + "_"
+            
+            nodename = name
+            if prefix != '':
+                nodename = prefix + name
+            
             nodename = re.sub("org-openroadm-",'',nodename)
             childxmlnode = self.doc.createElement("object")
             childxmlnode.setAttribute("name", nodename)
-            childxmlnode.setAttribute("nodeType", nodeType)
+            childxmlnode.setAttribute("nodeType", nodetype)
             childxmlnode.setAttribute("__name",name)
             childxmlnode.setAttribute("objectType","xmlBean")
             childxmlnode.setAttribute("anto-create","yes")
@@ -201,8 +213,12 @@ class CatsPlugin(plugin.PyangPlugin):
             anode.setAttribute("value", value)
             return anode
         
-        def addMetaInfo(xmlnode, module):
-            metainfonode = self.doc.createElement("metaInfo")
+        def addMetaInfo(xmlnode, module, adddeclareNS=True):
+            metainfos = xmlnode.getElementsByTagName("metaInfo");
+            if metainfos is None or len(metainfos) == 0:
+                metainfonode = self.doc.createElement("metaInfo")
+            else:
+                metainfonode = metainfos[0]
             ns = module.search_one('namespace')
             if ns is not None:
                 nsstr = ns.arg
@@ -211,8 +227,9 @@ class CatsPlugin(plugin.PyangPlugin):
                 prstr = pr.arg
             metainfonode.appendChild(createElementWithNameValue("metaInfo", "__prefix", prstr))
             metainfonode.appendChild(createElementWithNameValue("metaInfo", "__uri", nsstr))
-            metainfonode.appendChild(createElementWithNameValue("metaInfo", "__declaredNS_prefix", "netconf"))
-            metainfonode.appendChild(createElementWithNameValue("metaInfo", "__declaredNS_URI", "urn:ietf:params:xml:ns:netconf:base:1.0"))
+            if adddeclareNS:
+                metainfonode.appendChild(createElementWithNameValue("metaInfo", "__declaredNS_prefix", "netconf"))
+                metainfonode.appendChild(createElementWithNameValue("metaInfo", "__declaredNS_URI", "urn:ietf:params:xml:ns:netconf:base:1.0"))
             xmlnode.appendChild(metainfonode)
 
         def createAttribute(name, typestr):
@@ -351,6 +368,14 @@ class CatsPlugin(plugin.PyangPlugin):
                 metaInfo = metaInfos[0]
             metaInfo.appendChild(createElementWithNameValue("metaInfo", "super", parent.getAttribute("name")))
             child.appendChild(metaInfo)  
+
+        def createAction(parent,child,type):
+            if type == 'list':
+                addElementAttribute(parent, child)
+            elif type == 'container':
+                setElementAttribute(parent, child)
+            else:
+                print("don't support create action for type %s." % type)
         
         name = s.arg
         if s.i_module.i_modulename == module.i_modulename:
@@ -362,35 +387,15 @@ class CatsPlugin(plugin.PyangPlugin):
               (s.keyword, s.arg, s.i_module.i_prefix, s.i_module.arg,
                s.parent.keyword,
                 s.parent.i_module))
-        if s.keyword == 'list':
-            childxmlnode = createElement(parentnode, name,"list")
+
+        if s.keyword == 'list' or s.keyword == 'container' or s.keyword == "rpc" or s.keyword == "notification":
+            childxmlnode = createElement(parentnode, name, s.keyword)
             platformnode.appendChild(childxmlnode)
             if parentnode is not None:
-                addElementAttribute(parentnode, childxmlnode)
+                createAction(parentnode, childxmlnode, s.keyword)
                 updateRelationship(parentnode,childxmlnode)
             else:
                 addMetaInfo(childxmlnode, module)
-            mynode = self.maps.get(s)
-            if mynode is None:
-                self.maps[s] = childxmlnode
-            else:
-                print("node %s has been there " % s.arg)
-                sys.exit(1)
-        elif s.keyword == 'container':
-            childxmlnode = createElement(parentnode, name,"container")
-            p = s.search_one('presence')
-            if p is not None:
-                childxmlnode.setAttribute("presence","yes")
-            platformnode.appendChild(childxmlnode)
-            if parentnode is not None:
-                setElementAttribute(parentnode, childxmlnode)
-                updateRelationship(parentnode,childxmlnode)
-            else:
-                addMetaInfo(childxmlnode, module)
-        elif s.keyword == "rpc":
-            pass
-        elif s.keyword == "notification":
-            pass
         elif s.keyword  == 'choice':
             childxmlnode = parentnode
         elif s.keyword == 'case':
@@ -410,7 +415,14 @@ class CatsPlugin(plugin.PyangPlugin):
             if s.search_one('key') is not None:
                 keystr = re.sub('\s+', '::', s.search_one('key').arg)
                 childxmlnode.setAttribute("keys",keystr)
-                
+        elif s.keyword == 'container':
+            p = s.search_one('presence')
+            if p is not None:
+                childxmlnode.setAttribute("presence","yes")
+            
+        if parentnode is not None and parentnode != childxmlnode and s.i_module.arg != s.parent.i_module.arg:
+            addMetaInfo(childxmlnode, s.i_module, False)
+             
         features = s.search('if-feature')
         featurenames = [f.arg for f in features]
         if hasattr(s, 'i_augment'):
