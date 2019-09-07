@@ -78,7 +78,7 @@ class CatsPlugin(plugin.PyangPlugin):
         platform.setAttribute("release" , "1.0")
         self.doc.appendChild(platform)
         self.emit_tree(platform, ctx, modules)
-        self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
+#        self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
 
     def emit_tree(self, platformnode, ctx, modules):
         for module in modules:    
@@ -383,10 +383,14 @@ class CatsPlugin(plugin.PyangPlugin):
         else:
             tmpmodule = s.i_module
         flags = get_flags_str(s, mode)
-        print("%s %s -> module(%s)%s -> parent(%s).module:%s" % 
-              (s.keyword, s.arg, s.i_module.i_prefix, s.i_module.arg,
-               s.parent.keyword,
-                s.parent.i_module))
+#         print("%s %s -> module(%s)%s -> parent(%s).module:%s" % 
+#               (s.keyword, s.arg, s.i_module.i_prefix, s.i_module.arg,
+#                s.parent.keyword,
+#                 s.parent.i_module))
+        if s.keyword in ["list", "container"] and (s.i_orig_module.arg != s.i_module.arg or 
+                                                   (parentnode is not None and s.i_module.arg != s.parent.i_module.arg)):
+            print("%s -> orig_module:%s   current_module:%s  parent_module:%s"  % 
+                  (s.arg, s.i_orig_module.arg, s.i_module.arg, s.parent.i_module.arg))
 
         if s.keyword == 'list' or s.keyword == 'container' or s.keyword == "rpc" or s.keyword == "notification":
             childxmlnode = createElement(parentnode, name, s.keyword)
