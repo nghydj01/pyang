@@ -707,11 +707,12 @@ def typestring(node):
                 s = s + ' '
             elif t.arg == 'leafref':
                 found = True
-                s = s + ' : '
-                p = t.search_one('path')
-                if p is not None:
-                    s = s + p.arg
-
+                if node.i_leafref_expanded:
+                    targetnode = node.i_leafref.i_target_node
+                    return get_nontypedefstring(targetnode)
+                else:
+                    print("node does not expand leafref")
+                    sys.exit(1)
             elif t.arg == 'identityref':
                 found = True
                 b = t.search_one('base')
