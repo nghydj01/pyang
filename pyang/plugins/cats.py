@@ -78,7 +78,7 @@ class CatsPlugin(plugin.PyangPlugin):
         platform.setAttribute("release" , "1.0")
         self.doc.appendChild(platform)
         self.emit_tree(platform, ctx, modules)
-#        self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
+        self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
 
     def emit_tree(self, platformnode, ctx, modules):
         for module in modules:    
@@ -268,7 +268,21 @@ class CatsPlugin(plugin.PyangPlugin):
                                 tmpnode.appendChild(option)
                         else:
                             tmpnode.setAttribute("type","format")
-                            tmpnode.setAttribute("format", hinttype)                
+                            tmpnode.setAttribute("format", hinttype)     
+                elif type == "identityref":
+                    if types is not None and len(types) > 0:
+                        enums = types[0].split(",")
+                        if enums is not None and len(enums) > 0:
+                            tmpnode.setAttribute("type","enum")
+                            for enum in enums:
+                                if enum.strip() == '':
+                                    continue
+                                option = self.doc.createElement("option")
+                                option.setAttribute("name", enum.strip())
+                                tmpnode.appendChild(option)
+                        else:
+                            tmpnode.setAttribute("type","format")
+                            tmpnode.setAttribute("format", hinttype)                                  
                 else: 
                     tmpnode.setAttribute("type","format")
                     tmpnode.setAttribute("format", hinttype)
@@ -645,6 +659,38 @@ def get_typename(s, prefix_with_modname=False):
     else:
         return ''
 
+def identitystring(node, baseid):
+    t = node.search_one('type')
+    if baseid.find(":") == -1:
+        prefix = None
+        name = baseid
+    else:
+        [prefix, name] = baseid.split(':', 1)
+    if prefix is None or t.i_module.i_prefix == prefix:
+        # check local typedefs
+        pmodule = node.i_module
+    else:
+        # this is a prefixed name, check the imported modules
+        err = []
+        pmodule = statements.prefix_to_module(t.i_module,prefix,t.pos,err)
+        if pmodule is None:
+            return baseid
+    identities = pmodule.search('identity')
+    identitylist = []
+    tmpidentitylist = [name]
+    nextidentitylist = [name]
+    while len(nextidentitylist) != 0:
+        tmpidentitylist = nextidentitylist
+        nextidentitylist = []
+        for tmpidentity in tmpidentitylist:
+            newidentitylist = [identity.arg for identity in identities 
+                       if identity.search_one('base') is not None and identity.search_one('base').arg == tmpidentity]
+            if newidentitylist is None or len(newidentitylist) == 0:
+                identitylist.append(tmpidentity)
+            else:
+                nextidentitylist += newidentitylist
+    return ','.join(identitylist)
+    
 def typestring(node):
 
     def get_nontypedefstring(node):
@@ -670,7 +716,7 @@ def typestring(node):
                 found = True
                 b = t.search_one('base')
                 if b is not None:
-                    s = s + ' {' + b.arg + '}'
+                    s = s + identitystring(node, b.arg)
 
             elif t.arg == 'union':
                 found = True
