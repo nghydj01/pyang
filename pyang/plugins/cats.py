@@ -20,6 +20,7 @@ class CatsPlugin(plugin.PyangPlugin):
         plugin.PyangPlugin.__init__(self, 'cats')
         self.doc = mndom.Document()
         self.maps = {}
+        self.diffns = []
         self.buildinType = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
                            "decimal64","string","boolean","enumeration","bit", "binary","leafref",
                            "identityref","empty","union","instance-identifier"]
@@ -79,7 +80,10 @@ class CatsPlugin(plugin.PyangPlugin):
         self.doc.appendChild(platform)
         self.emit_tree(platform, ctx, modules)
         self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
-
+        for key, value in self.maps.items():
+            print(key+"\n")
+        for value in self.diffns:
+            print(value + "\n")
     def emit_tree(self, platformnode, ctx, modules):
         for module in modules:    
             chs = [ch for ch in module.i_children
@@ -178,7 +182,7 @@ class CatsPlugin(plugin.PyangPlugin):
     
     def print_node(self, s, module, platformnode, mode, parentnode):
 
-        def createElement(parent, name, nodetype):
+        def createElement(parent, stmt, name, nodetype):
             assert nodetype == "list" or nodetype == "container" or nodetype == "rpc" or nodetype == "notification"
             if nodetype == "list" or nodetype == "container":
                 middlename = ''
@@ -190,16 +194,20 @@ class CatsPlugin(plugin.PyangPlugin):
             if middlename != '':
                 prefix = prefix + middlename + '_'
             if parent is not None:
+                if stmt.i_orig_module.arg != stmt.i_module.arg and stmt.i_uses_top:
+                                                   (parentnode is not None and s.i_module.arg != s.parent.i_module.arg)):
                 parentname=parent.getAttribute("name")
                 prefix = parentname + "_"
-            
+            else:
+                if 
             nodename = name
             if prefix != '':
                 nodename = prefix + name
-            
             nodename = re.sub("org-openroadm-",'',nodename)
+            self.maps[nodename] = name
             childxmlnode = self.doc.createElement("object")
             childxmlnode.setAttribute("name", nodename)
+            childxmlnode.setAttribute("orig_module",stmt.i_orig_module.arg)
             childxmlnode.setAttribute("nodeType", nodetype)
             childxmlnode.setAttribute("__name",name)
             childxmlnode.setAttribute("objectType","xmlBean")
@@ -401,13 +409,13 @@ class CatsPlugin(plugin.PyangPlugin):
 #               (s.keyword, s.arg, s.i_module.i_prefix, s.i_module.arg,
 #                s.parent.keyword,
 #                 s.parent.i_module))
-        if s.keyword in ["list", "container"] and (s.i_orig_module.arg != s.i_module.arg or 
+        if s.keyword in ["list", "container"] and ((s.i_orig_module.arg != s.i_module.arg and s.i_uses_top) or 
                                                    (parentnode is not None and s.i_module.arg != s.parent.i_module.arg)):
-            print("%s -> orig_module:%s   current_module:%s  parent_module:%s"  % 
+            self.diffns.append("%s -> orig_module:%s   current_module:%s  parent_module:%s"  % 
                   (s.arg, s.i_orig_module.arg, s.i_module.arg, s.parent.i_module.arg))
 
         if s.keyword == 'list' or s.keyword == 'container' or s.keyword == "rpc" or s.keyword == "notification":
-            childxmlnode = createElement(parentnode, name, s.keyword)
+            childxmlnode = createElement(parentnode, s, name, s.keyword)
             platformnode.appendChild(childxmlnode)
             if parentnode is not None:
                 createAction(parentnode, childxmlnode, s.keyword)
