@@ -195,7 +195,7 @@ class CatsPlugin(plugin.PyangPlugin):
                 prefix = prefix + middlename + '_'
             if parent is not None:
                 if stmt.i_orig_module.arg != stmt.i_module.arg and stmt.i_uses_top:
-                                                   (parentnode is not None and s.i_module.arg != s.parent.i_module.arg)):
+                  (parentnode is not None and s.i_module.arg != s.parent.i_module.arg)):
                 parentname=parent.getAttribute("name")
                 prefix = parentname + "_"
             else:
