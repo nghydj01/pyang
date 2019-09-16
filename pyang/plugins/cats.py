@@ -201,7 +201,7 @@ class CatsPlugin(plugin.PyangPlugin):
                         prefix += (stmt.i_orig_module.arg+"__")
                 elif stmt.i_module.arg != stmt.parent.i_module.arg:
                     if stmt.i_module.arg == stmt.arg:
-                        prefix += "___"
+                        prefix += "__"
                     else:
                         prefix += (stmt.i_module.arg+"__")
                 else:  
