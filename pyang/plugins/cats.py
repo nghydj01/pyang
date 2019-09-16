@@ -195,16 +195,28 @@ class CatsPlugin(plugin.PyangPlugin):
                 prefix = prefix + middlename + '_'
             if parent is not None:
                 if stmt.i_orig_module.arg != stmt.i_module.arg and stmt.i_uses_top:
-                  (parentnode is not None and s.i_module.arg != s.parent.i_module.arg)):
-                parentname=parent.getAttribute("name")
-                prefix = parentname + "_"
-            else:
-                if 
-            nodename = name
+                    if stmt.i_orig_module.arg == stmt.arg:
+                        prefix += "___"
+                    else:
+                        prefix += (stmt.i_orig_module.arg+"__")
+                elif stmt.i_module.arg != stmt.parent.i_module.arg:
+                    if stmt.i_module.arg == stmt.arg:
+                        prefix += "___"
+                    else:
+                        prefix += (stmt.i_module.arg+"__")
+                else:  
+                    parentname=parent.getAttribute("name")
+                    prefix = parentname + "_"
+            else: 
+                nodename = name
             if prefix != '':
                 nodename = prefix + name
             nodename = re.sub("org-openroadm-",'',nodename)
-            self.maps[nodename] = name
+            try:
+                childxmlnode = self.maps[nodename]
+                return (childxmlnode, False)
+            except KeyError:
+                pass
             childxmlnode = self.doc.createElement("object")
             childxmlnode.setAttribute("name", nodename)
             childxmlnode.setAttribute("orig_module",stmt.i_orig_module.arg)
@@ -213,7 +225,8 @@ class CatsPlugin(plugin.PyangPlugin):
             childxmlnode.setAttribute("objectType","xmlBean")
             childxmlnode.setAttribute("anto-create","yes")
             childxmlnode.setAttribute("extends","CommonXMLBean")
-            return childxmlnode
+            self.maps[nodename] = childxmlnode
+            return (childxmlnode, True)
         
         def createElementWithNameValue(elemname, name, value):
             anode = self.doc.createElement(elemname)
@@ -413,10 +426,11 @@ class CatsPlugin(plugin.PyangPlugin):
                                                    (parentnode is not None and s.i_module.arg != s.parent.i_module.arg)):
             self.diffns.append("%s -> orig_module:%s   current_module:%s  parent_module:%s"  % 
                   (s.arg, s.i_orig_module.arg, s.i_module.arg, s.parent.i_module.arg))
-
+            
+        newObject = True
         if s.keyword == 'list' or s.keyword == 'container' or s.keyword == "rpc" or s.keyword == "notification":
-            childxmlnode = createElement(parentnode, s, name, s.keyword)
-            platformnode.appendChild(childxmlnode)
+            childxmlnode, newObject = createElement(parentnode, s, name, s.keyword)
+            if newObject: platformnode.appendChild(childxmlnode)
             if parentnode is not None:
                 createAction(parentnode, childxmlnode, s.keyword)
                 updateRelationship(parentnode,childxmlnode)
@@ -436,6 +450,8 @@ class CatsPlugin(plugin.PyangPlugin):
                 addAttribute(parentnode,childxmlnode)
             else:
                 setAttribute(parentnode, childxmlnode)
+        
+        if not newObject: return
                     
         if s.keyword == 'list':
             if s.search_one('key') is not None:
