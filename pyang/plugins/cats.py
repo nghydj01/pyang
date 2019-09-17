@@ -6,7 +6,11 @@ Created on Sep 4, 2019
 
 import optparse
 import sys
+import io
+import os
 import re
+import codecs
+import configparser
 import xml.dom.minidom as mndom
 
 from pyang import plugin
@@ -41,6 +45,14 @@ class CatsPlugin(plugin.PyangPlugin):
                                  type="string",
                                  dest="cats_prefix",
                                  help="the prefix of cats object"),
+            optparse.make_option("--cats-names-file",
+                                 type="string",
+                                 dest="cats_names_file",
+                                 help="the file to store object names "),
+            optparse.make_option("--cats-config",
+                                 type="string",
+                                 dest="cats_config",
+                                 help="options and/or naming substitution"),
             optparse.make_option("--cats-platform-name",
                                  type="string",
                                  dest="cats_platform_name",
@@ -65,25 +77,61 @@ class CatsPlugin(plugin.PyangPlugin):
         if ctx.opts.cats_help:
             print_help()
             sys.exit(0)
-
+        self.config = None
+        if ctx.opts.cats_config is not None:
+            self.config = configparser.ConfigParser()
+            self.config.read(ctx.opts.cats_config)
     def setup_fmt(self, ctx):
         ctx.implicit_errors = False
-
-    def emit(self, ctx, modules, fd):
+    
+    def init_cats_options(self, ctx):
         if ctx.opts.cats_prefix is not None:
             self.name_prefix = ctx.opts.cats_prefix
         else:
-            self.name_prefix = ""
+            if self.config is not None and self.config.has_option('options', 'prefix'):
+                self.name_prefix=self.config['options']['prefix']
+            else:
+                self.name_prefix = ""        
+    
+    def init_cats_model(self):
         platform = self.doc.createElement("platform")
         platform.setAttribute("name" , "DCI")
         platform.setAttribute("release" , "1.0")
+        return platform
+            
+    def emit(self, ctx, modules, fd):
+        self.init_cats_options(ctx)
+        platform = self.init_cats_model()
         self.doc.appendChild(platform)
         self.emit_tree(platform, ctx, modules)
         self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
-        for key, value in self.maps.items():
-            print(key+"\n")
+
+        tmpfile = None
+        if ctx.opts.cats_names_file == None:
+            if sys.version < '3':
+                self.namefd = codecs.getwriter('utf8')(sys.stdout)
+            else:
+                self.namefd = sys.stdout
+        else:
+            tmpfile = ctx.opts.cats_names_file + ".tmp"
+            if sys.version < '3':
+                self.namefd = codecs.open(tmpfile, "w+", encoding="utf-8")
+            else:
+                self.namefd = io.open(tmpfile, "w+", encoding="utf-8")
+        try:
+            for key, value in self.maps.items():
+                self.namefd.write(key+"\n")            
+        except:
+            if tmpfile != None:
+                self.namefd.close()
+                os.remove(tmpfile)
+            raise
+        if tmpfile != None:
+            self.namefd.close()
+            os.rename(tmpfile, ctx.opts.cats_names_file)
         for value in self.diffns:
             print(value + "\n")
+            
     def emit_tree(self, platformnode, ctx, modules):
         for module in modules:    
             chs = [ch for ch in module.i_children
@@ -182,6 +230,29 @@ class CatsPlugin(plugin.PyangPlugin):
     
     def print_node(self, s, module, platformnode, mode, parentnode):
 
+        def createElementWithNameValue(elemname, name, value):
+            anode = self.doc.createElement(elemname)
+            anode.setAttribute("name", name)
+            anode.setAttribute("value", value)
+            return anode
+        
+        def revisename(nodename):
+            if self.config.has_section("naming deletion"):
+                deletions = self.config.options("naming deletion")
+                for k in deletions:  nodename = re.sub(k,'',nodename)
+
+            if self.config.has_option("naming", "delimiter"):
+                snames = nodename.split(self.config['naming']['delimiter'])
+                if len(snames) > 1:
+                    nodename=snames[0]+''.join([nn.capitalize() for nn in snames[1:]])
+            
+            if self.config.has_section('naming substitution'):
+                items = self.config.items('naming substitution')
+                for key, value in items: 
+                    nodename = re.sub(key, value, nodename)
+
+            return nodename
+        
         def createElement(parent, stmt, name, nodetype):
             assert nodetype == "list" or nodetype == "container" or nodetype == "rpc" or nodetype == "notification"
             if nodetype == "list" or nodetype == "container":
@@ -200,7 +271,7 @@ class CatsPlugin(plugin.PyangPlugin):
                     else:
                         prefix += (stmt.i_orig_module.arg+"__")
                 elif stmt.i_module.arg != stmt.parent.i_module.arg:
-                    if stmt.i_module.arg == stmt.arg:
+                    if stmt.i_module.arg.endswith(stmt.arg):
                         prefix += "__"
                     else:
                         prefix += (stmt.i_module.arg+"__")
@@ -211,7 +282,7 @@ class CatsPlugin(plugin.PyangPlugin):
                 nodename = name
             if prefix != '':
                 nodename = prefix + name
-            nodename = re.sub("org-openroadm-",'',nodename)
+            nodename = revisename(nodename)
             try:
                 childxmlnode = self.maps[nodename]
                 return (childxmlnode, False)
@@ -219,25 +290,39 @@ class CatsPlugin(plugin.PyangPlugin):
                 pass
             childxmlnode = self.doc.createElement("object")
             childxmlnode.setAttribute("name", nodename)
-            childxmlnode.setAttribute("orig_module",stmt.i_orig_module.arg)
             childxmlnode.setAttribute("nodeType", nodetype)
-            childxmlnode.setAttribute("__name",name)
             childxmlnode.setAttribute("objectType","xmlBean")
             childxmlnode.setAttribute("anto-create","yes")
             childxmlnode.setAttribute("extends","CommonXMLBean")
+            metainfonode=self.doc.createElement("metaInfo")
+            metainfonode.appendChild(createElementWithNameValue("metaItem","orig_module",stmt.i_orig_module.arg))
+#            metainfonode.appendChild(createElementWithNameValue("metaItem","__name",name))
+            childxmlnode.setAttribute("__name", name)
+            childxmlnode.appendChild(metainfonode)
             self.maps[nodename] = childxmlnode
             return (childxmlnode, True)
         
-        def createElementWithNameValue(elemname, name, value):
-            anode = self.doc.createElement(elemname)
-            anode.setAttribute("name", name)
-            anode.setAttribute("value", value)
-            return anode
+        def getAttributeValue(metaitems, namevalue):
+            Items = [metaitem for metaitem in metaitems if metaitem.getAttribute("name") == namevalue]
+            assert len(Items) == 0 or len(Items) == 1
+            if len(Items) == 0:
+                value = None
+            else:
+                value = Items[0].getAttribute("value")
+            return value
+           
+        def getNamespace(metaitems):
+            if metaitems is None:
+                return (None, None)
+            prefix = getAttributeValue(metaitems, "__prefix")
+            uri = getAttributeValue(metaitems, "__uri")
+            return prefix, uri
         
-        def addMetaInfo(xmlnode, module, adddeclareNS=True):
+        def addMetaInfo(xmlnode, module, adddeclareNS=True, parentxmlnode=None):
             metainfos = xmlnode.getElementsByTagName("metaInfo");
             if metainfos is None or len(metainfos) == 0:
                 metainfonode = self.doc.createElement("metaInfo")
+                xmlnode.appendChild(metainfonode)
             else:
                 metainfonode = metainfos[0]
             ns = module.search_one('namespace')
@@ -246,12 +331,25 @@ class CatsPlugin(plugin.PyangPlugin):
             pr = module.search_one('prefix')
             if pr is not None:
                 prstr = pr.arg
-            metainfonode.appendChild(createElementWithNameValue("metaInfo", "__prefix", prstr))
-            metainfonode.appendChild(createElementWithNameValue("metaInfo", "__uri", nsstr))
+            metaitems = metainfonode.getElementsByTagName("metaItem")
+            prefix, uri = getNamespace(metaitems)
+            assert prefix == None and uri == None or prefix is not None and uri is not None
+            if prefix is not None:
+                assert prefix == prstr and uri == nsstr
+            if prefix is None:
+                metainfonode.appendChild(createElementWithNameValue("metaItem", "__prefix", prstr))
+                metainfonode.appendChild(createElementWithNameValue("metaItem", "__uri", nsstr))
+            if parentxmlnode is not None:
+                whenItem = [metaitem for metaitem in metaitems if metaitem.getAttribute("name") == "__ns_when"]
+                if whenItem is None or len(whenItem) == 0:
+                    metainfonode.appendChild(createElementWithNameValue("metaItem", "__ns_when", 
+                                                                        "parent in "+parentxmlnode.getAttribute("name")))
+                else:
+                    ov = whenItem.getAttribute("value")
+                    whenItem.setAttribute("value",ov + ","+parentxmlnode.getAttribute("name"))
             if adddeclareNS:
-                metainfonode.appendChild(createElementWithNameValue("metaInfo", "__declaredNS_prefix", "netconf"))
-                metainfonode.appendChild(createElementWithNameValue("metaInfo", "__declaredNS_URI", "urn:ietf:params:xml:ns:netconf:base:1.0"))
-            xmlnode.appendChild(metainfonode)
+                metainfonode.appendChild(createElementWithNameValue("metaItem", "__declaredNS_prefix", "netconf"))
+                metainfonode.appendChild(createElementWithNameValue("metaItem", "__declaredNS_URI", "urn:ietf:params:xml:ns:netconf:base:1.0"))
 
         def createAttribute(name, typestr):
             childxmlnode = self.doc.createElement("attribute")
@@ -451,6 +549,8 @@ class CatsPlugin(plugin.PyangPlugin):
             else:
                 setAttribute(parentnode, childxmlnode)
         
+        if parentnode is not None and parentnode != childxmlnode and s.i_module.arg != s.parent.i_module.arg:
+            addMetaInfo(childxmlnode, s.i_module, False, parentnode)
         if not newObject: return
                     
         if s.keyword == 'list':
@@ -461,9 +561,6 @@ class CatsPlugin(plugin.PyangPlugin):
             p = s.search_one('presence')
             if p is not None:
                 childxmlnode.setAttribute("presence","yes")
-            
-        if parentnode is not None and parentnode != childxmlnode and s.i_module.arg != s.parent.i_module.arg:
-            addMetaInfo(childxmlnode, s.i_module, False)
              
         features = s.search('if-feature')
         featurenames = [f.arg for f in features]

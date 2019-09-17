@@ -1,0 +1,11 @@
+[options]
+prefix=or
+
+[naming]
+delimiter=-
+
+[naming deletion]
+org-openroadm-=
+
+[naming substitution]
+swManifestCommand=Command
