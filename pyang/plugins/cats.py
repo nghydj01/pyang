@@ -15,6 +15,7 @@ import xml.dom.minidom as mndom
 
 from pyang import plugin
 from pyang import statements
+from pip._internal.cli.cmdoptions import platform
 
 def pyang_plugin_init():
     plugin.register_plugin(CatsPlugin())
@@ -25,6 +26,9 @@ class CatsPlugin(plugin.PyangPlugin):
         self.doc = mndom.Document()
         self.maps = {}
         self.diffns = []
+        self.objnames = []
+        self.topObj = []
+        self.notificationObj = []
         self.buildinType = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
                            "decimal64","string","boolean","enumeration","bit", "binary","leafref",
                            "identityref","empty","union","instance-identifier"]
@@ -79,8 +83,13 @@ class CatsPlugin(plugin.PyangPlugin):
             sys.exit(0)
         self.config = None
         if ctx.opts.cats_config is not None:
+            if not os.path.isfile(ctx.opts.cats_config):
+                print("Error: %s file not found" % ctx.opts.cats_config)
+                sys.exit(1)
             self.config = configparser.ConfigParser()
+            self.config.optionxform = lambda option:option
             self.config.read(ctx.opts.cats_config)
+
     def setup_fmt(self, ctx):
         ctx.implicit_errors = False
     
@@ -92,11 +101,234 @@ class CatsPlugin(plugin.PyangPlugin):
                 self.name_prefix=self.config['options']['prefix']
             else:
                 self.name_prefix = ""        
+
+    def createElementWithNameValue(self, elemname, name, value):
+        anode = self.doc.createElement(elemname)
+        anode.setAttribute("name", name)
+        anode.setAttribute("value", value)
+        return anode
     
+    def createAttribute(self, name, typestr, option_list=None):
+        childxmlnode = self.doc.createElement("attribute")
+        childxmlnode.setAttribute("name", name)
+        tmpnode = self.doc.createElement("value")
+        if typestr == '':
+            tmpnode.setAttribute('type', "string")
+        else:
+            types = typestr.split("\n")
+            type = types[0]
+            types = types[1:]
+            if type not in self.buildinType:
+                type = types[0]
+                types = types[1:]
+            if type not in self.buildinType and type != "cats_object_name":
+                print("type string:%s is not buildin type" % typestr)
+                sys.exit(1)
+            if types is not None and len(types) > 0:
+                hinttype = type + " " + types[0]
+            else:
+                hinttype = type
+            if type in self.integerTye:
+                tmpnode.setAttribute("type", "integer")
+                tmpnode.setAttribute("range", hinttype)
+            elif type == "enumeration":
+                if types is not None and len(types) > 0:
+                    enums = types[0].split(",")
+                    if enums is not None and len(enums) > 0:
+                        tmpnode.setAttribute("type","enum")
+                        for enum in enums:
+                            if enum.strip() == '':
+                                continue
+                            option = self.doc.createElement("option")
+                            option.setAttribute("name", enum.strip())
+                            tmpnode.appendChild(option)
+                    else:
+                        tmpnode.setAttribute("type","format")
+                        tmpnode.setAttribute("format", hinttype)     
+            elif type == "identityref":
+                if types is not None and len(types) > 0:
+                    enums = types[0].split(",")
+                    if enums is not None and len(enums) > 0:
+                        tmpnode.setAttribute("type","enum")
+                        for enum in enums:
+                            if enum.strip() == '':
+                                continue
+                            option = self.doc.createElement("option")
+                            option.setAttribute("name", enum.strip())
+                            tmpnode.appendChild(option)
+                    else:
+                        tmpnode.setAttribute("type","format")
+                        tmpnode.setAttribute("format", hinttype)  
+            elif type == "cats_object_name"  :
+                tmpnode.setAttribute("type","object-name")  
+                for opt in option_list:
+                    option = self.doc.createElement("option")
+                    option.setAttribute("name", opt.strip())
+                    tmpnode.appendChild(option)                                               
+            else: 
+                tmpnode.setAttribute("type","format")
+                tmpnode.setAttribute("format", hinttype)
+        childxmlnode.appendChild(tmpnode)
+        return childxmlnode
+
+    def addAction(self, parent, name):
+        addnode = self.doc.createElement("action")
+        addnode.setAttribute("name", name)
+        addnode.setAttribute("type", "cli")
+        parent.appendChild(addnode)
+        return addnode
+        
+    def addAttribute(self, parent, child):
+        addnodes = parent.getElementsByTagName("action");
+        if addnodes is None:
+            addnode = self.addAction(parent, "add")
+        else:
+            found = False
+            for node in addnodes:
+                name = node.getAttribute("name")
+                if name == "add":
+                    found = True
+                    addnode = node
+                    break
+            if not found:
+                addnode = self.addAction(parent,"add")  
+        addnode.appendChild(child)
+
+    def createElementAttribute(self, node):
+        attrnode = self.doc.createElement("attribute")
+        name = node.getAttribute("__name")
+        attrnode.setAttribute("name", name)
+        valuenode = self.doc.createElement("value")
+        valuenode.setAttribute("type","object-name")
+        optionnode = self.doc.createElement("option")
+        optionnode.setAttribute("name", node.getAttribute("name"))
+        valuenode.appendChild(optionnode)
+        attrnode.appendChild(valuenode)           
+        return attrnode
+            
+    def addElementAttribute(self, parent, child):
+        childNode = self.createElementAttribute(child)
+        addnodes = parent.getElementsByTagName("action");
+        if addnodes is None:
+            addnode = self.addAction(parent, "add")
+        else:
+            found = False
+            for node in addnodes:
+                name = node.getAttribute("name")
+                if name == "add":
+                    found = True
+                    addnode = node
+                    break
+            if not found:
+                addnode = self.addAction(parent,"add")  
+        addnode.appendChild(childNode)
+
+    def setAttribute(self, parent, child):
+        addnodes = parent.getElementsByTagName("action");
+        if addnodes is None:
+            addnode = self.addAction(parent, "set")
+        else:
+            found = False
+            for node in addnodes:
+                name = node.getAttribute("name")
+                if name == "set":
+                    found = True
+                    addnode = node
+                    break
+            if not found:
+                addnode = self.addAction(parent,"set")  
+        addnode.appendChild(child)
+
+    def setElementAttribute(self, parent, child):
+        childNode = self.createElementAttribute(child)
+        addnodes = parent.getElementsByTagName("action");
+        if addnodes is None:
+            addnode = self.addAction(parent, "set")
+        else:
+            found = False
+            for node in addnodes:
+                name = node.getAttribute("name")
+                if name == "set":
+                    found = True
+                    addnode = node
+                    break
+            if not found:
+                addnode = self.addAction(parent,"set")  
+        addnode.appendChild(childNode)
+
+    def add_meta_info(self, parent, metaItems):
+        info = self.doc.createElement("metaInfo");
+        for key, value in metaItems.items():
+            info.appendChild(self.createElementWithNameValue("metaItem", key, value))
+        parent.appendChild(info)
+        return info
+        
+    def add_platform_element(self, platform, attributes):
+        elem = self.doc.createElement("object")
+        for key, value in attributes.items():
+            elem.setAttribute(key,value)
+        platform.appendChild(elem)
+        return elem
+    
+    def add_filter_get(self, platform):
+        filter = self.add_platform_element(platform, {
+            "name": self.name_prefix+"_filter_get",
+            "extends":"CommonXMLBean",
+            "objectType":"xmlBean",
+            "auto-create":"yes",
+            "__name":"filter"
+            })
+        self.add_meta_info(filter, {
+            "__uri":"urn:ietf:params:xml:ns:netconf:base:1.0"
+            })
+        attr = self.createAttribute("type", "enumeration\n subtree,xpath")
+        action = self.addAction(filter, "setXMLAttribute")
+        action.appendChild(attr)
+        attr = self.createAttribute("select", "string\n")
+        self.addAttribute(filter, attr)
+        attr = self.createAttribute("__subtree", "cats_object_name\ncats_object_name", self.topObj)
+        self.addAttribute(filter, attr)
+
+    def add_filter_notification(self, platform):
+        filter = self.add_platform_element(platform, {
+            "name": self.name_prefix+"_filter_notification",
+            "extends":"CommonXMLBean",
+            "objectType":"xmlBean",
+            "auto-create":"yes",
+            "__name":"filter"
+            })
+        self.add_meta_info(filter, {
+            "__uri":"urn:ietf:params:xml:ns:netconf:base:1.0",
+            "__declaredNS_prefix":"netconf",
+            "__declaredNS_URI":"urn:ietf:params:xml:ns:netconf:base:1.0"
+            })
+        attr = self.createAttribute("netconf:type", "enumeration\n subtree,xpath")
+        action = self.addAction(filter, "setXMLAttribute")
+        action.appendChild(attr)
+        attr = self.createAttribute("select", "string\n")
+        self.addAttribute(filter, attr)
+        attr = self.createAttribute("__subtree", "cats_object_name\ncats_object_name", self.notificationObj)
+        self.addAttribute(filter, attr)
+        
+    def add_platform_attribute(self,platform):
+        if self.config is not None and self.config.has_section("platform"):
+            items = self.config.items('platform')
+            for key, value in items: 
+                platform.setAttribute(key,value)
+            
+    def add_platform_property(self,platform):
+        if self.config is not None and self.config.has_section("properties"):
+            items = self.config.items('properties')
+            for key, value in items: 
+                property = self.doc.createElement("property")
+                property.setAttribute("name",key)
+                property.setAttribute("value",value)
+                platform.appendChild(property)
+        
     def init_cats_model(self):
         platform = self.doc.createElement("platform")
-        platform.setAttribute("name" , "DCI")
-        platform.setAttribute("release" , "1.0")
+        self.add_platform_attribute(platform)
+        self.add_platform_property(platform)
         return platform
             
     def emit(self, ctx, modules, fd):
@@ -104,6 +336,8 @@ class CatsPlugin(plugin.PyangPlugin):
         platform = self.init_cats_model()
         self.doc.appendChild(platform)
         self.emit_tree(platform, ctx, modules)
+        self.add_filter_get(platform)
+        self.add_filter_notification(platform)
         self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
 
         tmpfile = None
@@ -128,6 +362,8 @@ class CatsPlugin(plugin.PyangPlugin):
             raise
         if tmpfile != None:
             self.namefd.close()
+            if os.path.isfile(ctx.opts.cats_names_file):
+                os.remove(ctx.opts.cats_names_file)
             os.rename(tmpfile, ctx.opts.cats_names_file)
         for value in self.diffns:
             print(value + "\n")
@@ -230,17 +466,7 @@ class CatsPlugin(plugin.PyangPlugin):
     
     def print_node(self, s, module, platformnode, mode, parentnode):
 
-        def createElementWithNameValue(elemname, name, value):
-            anode = self.doc.createElement(elemname)
-            anode.setAttribute("name", name)
-            anode.setAttribute("value", value)
-            return anode
-        
         def revisename(nodename):
-            if self.config.has_section("naming deletion"):
-                deletions = self.config.options("naming deletion")
-                for k in deletions:  nodename = re.sub(k,'',nodename)
-
             if self.config.has_option("naming", "delimiter"):
                 snames = nodename.split(self.config['naming']['delimiter'])
                 if len(snames) > 1:
@@ -251,8 +477,15 @@ class CatsPlugin(plugin.PyangPlugin):
                 for key, value in items: 
                     nodename = re.sub(key, value, nodename)
 
+            if self.config.has_section("naming deletion"):
+                deletions = self.config.options("naming deletion")
+                for k in deletions:  
+                    nodename = re.sub(k,'',nodename)
+            
+            if len(nodename) > 4:
+                nodename = nodename[0:3] + nodename[3:4].lower() + nodename[4:]
             return nodename
-        
+                
         def createElement(parent, stmt, name, nodetype):
             assert nodetype == "list" or nodetype == "container" or nodetype == "rpc" or nodetype == "notification"
             if nodetype == "list" or nodetype == "container":
@@ -280,26 +513,42 @@ class CatsPlugin(plugin.PyangPlugin):
                     prefix = parentname + "_"
             else: 
                 nodename = name
+                
             if prefix != '':
                 nodename = prefix + name
             nodename = revisename(nodename)
-            try:
+            commonnodename=stmt.i_orig_module.arg + stmt.arg
+            if self.maps.__contains__(nodename):
                 childxmlnode = self.maps[nodename]
+                omod = childxmlnode.getAttribute("orig_module")
+                oname = childxmlnode.getAttribute("__name")
+                assert omod == stmt.i_orig_module.arg and oname == stmt.arg
                 return (childxmlnode, False)
-            except KeyError:
-                pass
+#             try:
+#                 childxmlnode = self.maps[nodename]
+#                 return (childxmlnode, False)
+#             except KeyError:
+#                 pass
             childxmlnode = self.doc.createElement("object")
             childxmlnode.setAttribute("name", nodename)
             childxmlnode.setAttribute("nodeType", nodetype)
             childxmlnode.setAttribute("objectType","xmlBean")
-            childxmlnode.setAttribute("anto-create","yes")
+            childxmlnode.setAttribute("auto-create","yes")
             childxmlnode.setAttribute("extends","CommonXMLBean")
             metainfonode=self.doc.createElement("metaInfo")
-            metainfonode.appendChild(createElementWithNameValue("metaItem","orig_module",stmt.i_orig_module.arg))
+#            metainfonode.appendChild(createElementWithNameValue("metaItem","orig_module",stmt.i_orig_module.arg))
 #            metainfonode.appendChild(createElementWithNameValue("metaItem","__name",name))
             childxmlnode.setAttribute("__name", name)
+            childxmlnode.setAttribute("orig_module", stmt.i_orig_module.arg)
             childxmlnode.appendChild(metainfonode)
             self.maps[nodename] = childxmlnode
+            if parent is None:
+                if nodetype == "notification":
+                    self.notificationObj.append(nodename)
+                elif nodetype != "rpc":
+                    self.topObj.append(nodename)
+                else:
+                    pass
             return (childxmlnode, True)
         
         def getAttributeValue(metaitems, namevalue):
@@ -319,7 +568,7 @@ class CatsPlugin(plugin.PyangPlugin):
             return prefix, uri
         
         def addMetaInfo(xmlnode, module, adddeclareNS=True, parentxmlnode=None):
-            metainfos = xmlnode.getElementsByTagName("metaInfo");
+            metainfos = xmlnode.getElementsByTagName("metaInfo")
             if metainfos is None or len(metainfos) == 0:
                 metainfonode = self.doc.createElement("metaInfo")
                 xmlnode.appendChild(metainfonode)
@@ -337,161 +586,21 @@ class CatsPlugin(plugin.PyangPlugin):
             if prefix is not None:
                 assert prefix == prstr and uri == nsstr
             if prefix is None:
-                metainfonode.appendChild(createElementWithNameValue("metaItem", "__prefix", prstr))
-                metainfonode.appendChild(createElementWithNameValue("metaItem", "__uri", nsstr))
+                metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__prefix", prstr))
+                metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__uri", nsstr))
             if parentxmlnode is not None:
                 whenItem = [metaitem for metaitem in metaitems if metaitem.getAttribute("name") == "__ns_when"]
                 if whenItem is None or len(whenItem) == 0:
-                    metainfonode.appendChild(createElementWithNameValue("metaItem", "__ns_when", 
+                    metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__ns_when", 
                                                                         "parent in "+parentxmlnode.getAttribute("name")))
                 else:
                     ov = whenItem.getAttribute("value")
                     whenItem.setAttribute("value",ov + ","+parentxmlnode.getAttribute("name"))
             if adddeclareNS:
-                metainfonode.appendChild(createElementWithNameValue("metaItem", "__declaredNS_prefix", "netconf"))
-                metainfonode.appendChild(createElementWithNameValue("metaItem", "__declaredNS_URI", "urn:ietf:params:xml:ns:netconf:base:1.0"))
+                metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__declaredNS_prefix", "netconf"))
+                metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__declaredNS_URI", "urn:ietf:params:xml:ns:netconf:base:1.0"))
 
-        def createAttribute(name, typestr):
-            childxmlnode = self.doc.createElement("attribute")
-            childxmlnode.setAttribute("name", name)
-            tmpnode = self.doc.createElement("value")
-            if typestr == '':
-                tmpnode.setAttribute('type', "string")
-            else:
-                types = typestr.split("\n")
-                type = types[0]
-                types = types[1:]
-                if type not in self.buildinType:
-                    type = types[0]
-                    types = types[1:]
-                if type not in self.buildinType:
-                    print("type string:%s is not buildin type" % typestr)
-                    sys.exit(1)
-                if types is not None and len(types) > 0:
-                    hinttype = type + " " + types[0]
-                else:
-                    hinttype = type
-                if type in self.integerTye:
-                    tmpnode.setAttribute("type", "integer")
-                    tmpnode.setAttribute("range", hinttype)
-                elif type == "enumeration":
-                    if types is not None and len(types) > 0:
-                        enums = types[0].split(",")
-                        if enums is not None and len(enums) > 0:
-                            tmpnode.setAttribute("type","enum")
-                            for enum in enums:
-                                if enum.strip() == '':
-                                    continue
-                                option = self.doc.createElement("option")
-                                option.setAttribute("name", enum.strip())
-                                tmpnode.appendChild(option)
-                        else:
-                            tmpnode.setAttribute("type","format")
-                            tmpnode.setAttribute("format", hinttype)     
-                elif type == "identityref":
-                    if types is not None and len(types) > 0:
-                        enums = types[0].split(",")
-                        if enums is not None and len(enums) > 0:
-                            tmpnode.setAttribute("type","enum")
-                            for enum in enums:
-                                if enum.strip() == '':
-                                    continue
-                                option = self.doc.createElement("option")
-                                option.setAttribute("name", enum.strip())
-                                tmpnode.appendChild(option)
-                        else:
-                            tmpnode.setAttribute("type","format")
-                            tmpnode.setAttribute("format", hinttype)                                  
-                else: 
-                    tmpnode.setAttribute("type","format")
-                    tmpnode.setAttribute("format", hinttype)
-            childxmlnode.appendChild(tmpnode)
-            return childxmlnode
 
-        def createElementAttribute(node):
-            attrnode = self.doc.createElement("attribute")
-            name = node.getAttribute("__name")
-            attrnode.setAttribute("name", name)
-            valuenode = self.doc.createElement("value")
-            valuenode.setAttribute("type","object-name")
-            optionnode = self.doc.createElement("option")
-            optionnode.setAttribute("name", node.getAttribute("name"))
-            valuenode.appendChild(optionnode)
-            attrnode.appendChild(valuenode)           
-            return attrnode
-            
-        def addAction(parent, name):
-            addnode = self.doc.createElement("action")
-            addnode.setAttribute("name", name)
-            addnode.setAttribute("type", "cli")
-            parent.appendChild(addnode)
-            return addnode
-            
-        def addAttribute(parent, child):
-            addnodes = parent.getElementsByTagName("action");
-            if addnodes is None:
-                addnode = addAction(parent, "add")
-            else:
-                found = False
-                for node in addnodes:
-                    name = node.getAttribute("name")
-                    if name == "add":
-                        found = True
-                        addnode = node
-                        break
-                if not found:
-                    addnode = addAction(parent,"add")  
-            addnode.appendChild(child)
-
-        def addElementAttribute(parent, child):
-            childNode = createElementAttribute(child)
-            addnodes = parent.getElementsByTagName("action");
-            if addnodes is None:
-                addnode = addAction(parent, "add")
-            else:
-                found = False
-                for node in addnodes:
-                    name = node.getAttribute("name")
-                    if name == "add":
-                        found = True
-                        addnode = node
-                        break
-                if not found:
-                    addnode = addAction(parent,"add")  
-            addnode.appendChild(childNode)
-
-        def setAttribute(parent, child):
-            addnodes = parent.getElementsByTagName("action");
-            if addnodes is None:
-                addnode = addAction(parent, "set")
-            else:
-                found = False
-                for node in addnodes:
-                    name = node.getAttribute("name")
-                    if name == "set":
-                        found = True
-                        addnode = node
-                        break
-                if not found:
-                    addnode = addAction(parent,"set")  
-            addnode.appendChild(child)
-
-        def setElementAttribute(parent, child):
-            childNode = createElementAttribute(child)
-            addnodes = parent.getElementsByTagName("action");
-            if addnodes is None:
-                addnode = addAction(parent, "set")
-            else:
-                found = False
-                for node in addnodes:
-                    name = node.getAttribute("name")
-                    if name == "set":
-                        found = True
-                        addnode = node
-                        break
-                if not found:
-                    addnode = addAction(parent,"set")  
-            addnode.appendChild(childNode)
         
         def updateRelationship(parent,child):
             metaInfos = child.getElementsByTagName("metaInfo");
@@ -499,14 +608,14 @@ class CatsPlugin(plugin.PyangPlugin):
                 metaInfo = self.doc.createElement("metaInfo")
             else:
                 metaInfo = metaInfos[0]
-            metaInfo.appendChild(createElementWithNameValue("metaInfo", "super", parent.getAttribute("name")))
+            metaInfo.appendChild(self.createElementWithNameValue("metaInfo", "super", parent.getAttribute("name")))
             child.appendChild(metaInfo)  
 
         def createAction(parent,child,type):
             if type == 'list':
-                addElementAttribute(parent, child)
+                self.addElementAttribute(parent, child)
             elif type == 'container':
-                setElementAttribute(parent, child)
+                self.setElementAttribute(parent, child)
             else:
                 print("don't support create action for type %s." % type)
         
@@ -543,11 +652,11 @@ class CatsPlugin(plugin.PyangPlugin):
         else:
 #             t = get_typename(s, False)
             t = typestring(s)
-            childxmlnode = createAttribute(name, t)
+            childxmlnode = self.createAttribute(name, t)
             if s.keyword == 'leaf-list':
-                addAttribute(parentnode,childxmlnode)
+                self.addAttribute(parentnode,childxmlnode)
             else:
-                setAttribute(parentnode, childxmlnode)
+                self.setAttribute(parentnode, childxmlnode)
         
         if parentnode is not None and parentnode != childxmlnode and s.i_module.arg != s.parent.i_module.arg:
             addMetaInfo(childxmlnode, s.i_module, False, parentnode)
