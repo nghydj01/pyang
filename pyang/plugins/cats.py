@@ -28,6 +28,7 @@ class CatsPlugin(plugin.PyangPlugin):
         self.diffns = []
         self.objnames = []
         self.topObj = []
+        self.rpcObj = []
         self.notificationObj = []
         self.buildinType = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
                            "decimal64","string","boolean","enumeration","bit", "binary","leafref",
@@ -270,6 +271,16 @@ class CatsPlugin(plugin.PyangPlugin):
         platform.appendChild(elem)
         return elem
     
+    def add_rpc_bean(self, platform):
+        container = self.add_platform_element(platform, {
+            "name": self.name_prefix+"_Container_RPC",
+            "extends":"CommonXMLBean",
+            "objectType":"xmlBean",
+            "auto-create":"yes"
+            })
+        attr = self.createAttribute("__rpc_name", "cats_object_name\ncats_object_name", self.rpcObj)
+        self.setAttribute(container, attr)
+    
     def add_filter_get(self, platform):
         filter = self.add_platform_element(platform, {
             "name": self.name_prefix+"_filter_get",
@@ -285,7 +296,7 @@ class CatsPlugin(plugin.PyangPlugin):
         action = self.addAction(filter, "setXMLAttribute")
         action.appendChild(attr)
         attr = self.createAttribute("select", "string\n")
-        self.addAttribute(filter, attr)
+        self.setAttribute(filter, attr)
         attr = self.createAttribute("__subtree", "cats_object_name\ncats_object_name", self.topObj)
         self.addAttribute(filter, attr)
 
@@ -306,7 +317,7 @@ class CatsPlugin(plugin.PyangPlugin):
         action = self.addAction(filter, "setXMLAttribute")
         action.appendChild(attr)
         attr = self.createAttribute("select", "string\n")
-        self.addAttribute(filter, attr)
+        self.setAttribute(filter, attr)
         attr = self.createAttribute("__subtree", "cats_object_name\ncats_object_name", self.notificationObj)
         self.addAttribute(filter, attr)
         
@@ -338,6 +349,7 @@ class CatsPlugin(plugin.PyangPlugin):
         self.emit_tree(platform, ctx, modules)
         self.add_filter_get(platform)
         self.add_filter_notification(platform)
+        self.add_rpc_bean(platform)
         self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
 
         tmpfile = None
@@ -545,10 +557,10 @@ class CatsPlugin(plugin.PyangPlugin):
             if parent is None:
                 if nodetype == "notification":
                     self.notificationObj.append(nodename)
-                elif nodetype != "rpc":
-                    self.topObj.append(nodename)
+                elif nodetype == "rpc":
+                    self.rpcObj.append(nodename)
                 else:
-                    pass
+                    self.topObj.append(nodename)
             return (childxmlnode, True)
         
         def getAttributeValue(metaitems, namevalue):
