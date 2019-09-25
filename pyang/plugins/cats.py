@@ -317,10 +317,10 @@ class CatsPlugin(plugin.PyangPlugin):
             })
         self.add_meta_info(filter, {
             "__uri":"urn:ietf:params:xml:ns:netconf:base:1.0",
-            "__declaredNS_prefix":"netconf",
+            "__declaredNS_prefix":"xc",
             "__declaredNS_URI":"urn:ietf:params:xml:ns:netconf:base:1.0"
             })
-        attr = self.createAttribute("netconf:type", "enumeration\n subtree,xpath")
+        attr = self.createAttribute("xc:type", "enumeration\n subtree,xpath")
         action = self.addAction(filter, "setXMLAttribute")
         action.appendChild(attr)
         attr = self.createAttribute("select", "string\n")
@@ -619,7 +619,7 @@ class CatsPlugin(plugin.PyangPlugin):
                     ov = whenItem.getAttribute("value")
                     whenItem.setAttribute("value",ov + ","+parentxmlnode.getAttribute("name"))
             if adddeclareNS:
-                metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__declaredNS_prefix", "netconf"))
+                metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__declaredNS_prefix", "xc"))
                 metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__declaredNS_URI", "urn:ietf:params:xml:ns:netconf:base:1.0"))
 
 
