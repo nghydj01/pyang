@@ -29,10 +29,11 @@ class CatsPlugin(plugin.PyangPlugin):
         self.objnames = []
         self.topObj = []
         self.rpcObj = []
+        self.naming_replace = True
         self.notificationObj = []
         self.buildinType = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
                            "decimal64","string","boolean","enumeration","bit", "binary","leafref",
-                           "identityref","empty","union","instance-identifier"]
+                           "identityref","empty","union","instance-identifier", "inet:uri"]
         self.integerTye = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
                            "decimal64"]
 
@@ -54,6 +55,10 @@ class CatsPlugin(plugin.PyangPlugin):
                                  type="string",
                                  dest="cats_names_file",
                                  help="the file to store object names "),
+            optparse.make_option("--cats-name-without-replace",
+                                 dest="cats_without_replace",
+                                 type="string",
+                                 help="Print don't do replace and deletion"),
             optparse.make_option("--cats-config",
                                  type="string",
                                  dest="cats_config",
@@ -102,7 +107,9 @@ class CatsPlugin(plugin.PyangPlugin):
                 self.name_prefix=self.config['options']['prefix']
             else:
                 self.name_prefix = ""        
-
+        if ctx.opts.cats_without_replace is not None:
+            self.naming_replace=ctx.opts.cats_without_replace=="false"
+            
     def createElementWithNameValue(self, elemname, name, value):
         anode = self.doc.createElement(elemname)
         anode.setAttribute("name", name)
@@ -123,7 +130,7 @@ class CatsPlugin(plugin.PyangPlugin):
                 type = types[0]
                 types = types[1:]
             if type not in self.buildinType and type != "cats_object_name":
-                print("type string:%s is not buildin type" % typestr)
+                print("type :%s is not buildin type" % typestr)
                 sys.exit(1)
             if types is not None and len(types) > 0:
                 hinttype = type + " " + types[0]
@@ -483,6 +490,9 @@ class CatsPlugin(plugin.PyangPlugin):
                 snames = nodename.split(self.config['naming']['delimiter'])
                 if len(snames) > 1:
                     nodename=snames[0]+''.join([nn.capitalize() for nn in snames[1:]])
+
+            if not self.naming_replace:
+                return nodename
             
             if self.config.has_section('naming substitution'):
                 items = self.config.items('naming substitution')
@@ -951,7 +961,7 @@ def typestring(node):
                 found = True
                 if node.i_leafref_expanded:
                     targetnode = node.i_leafref.i_target_node
-                    return get_nontypedefstring(targetnode)
+                    return typestring(targetnode)
                 else:
                     print("node does not expand leafref")
                     sys.exit(1)
@@ -983,7 +993,7 @@ def typestring(node):
                 found = True
                 s = s + ' {pattern = ' + pattern.arg + '}'
         return s
-
+        
     s = get_nontypedefstring(node)
 
     if s != "":
@@ -999,7 +1009,9 @@ def typestring(node):
         if prefix is None or t.i_module.i_prefix == prefix:
             # check local typedefs
             pmodule = node.i_module
-            typedef = statements.search_typedef(t, name)
+            typedef = statements.search_typedef(pmodule, name)
+            if typedef is None:
+                typedef = statements.search_typedef(t, name)
         else:
             # this is a prefixed name, check the imported modules
             err = []

@@ -57,6 +57,7 @@ _transferNotification=_transfer
 _swStageNotification=_swStage
 _swActivateNotification=_swActivate
 createTechInfoNotification=createTechInfo
+NetworkTopology=netTopo
 
 [naming deletion]
 orgOpenroadm=
@@ -70,3 +71,4 @@ OtnOtuInterfaces__=
 MaintenanceTestsignal__=
 MaintenanceLoopback__=
 ProtOtnLinearAps__=
+ietfnetTopo__=
