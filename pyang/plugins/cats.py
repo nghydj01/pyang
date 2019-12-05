@@ -30,6 +30,7 @@ class CatsPlugin(plugin.PyangPlugin):
         self.topObj = []
         self.rpcObj = []
         self.naming_replace = True
+        self.naming_without_parent = False
         self.notificationObj = []
         self.buildinType = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
                            "decimal64","string","boolean","enumeration","bit", "binary","leafref",
@@ -59,6 +60,10 @@ class CatsPlugin(plugin.PyangPlugin):
                                  dest="cats_without_replace",
                                  type="string",
                                  help="Print don't do replace and deletion"),
+            optparse.make_option("--cats-name-without-parent",
+                                 dest="cats_without_parent",
+                                 type="string",
+                                 help="Print don't prefix parent's name"),
             optparse.make_option("--cats-config",
                                  type="string",
                                  dest="cats_config",
@@ -109,6 +114,8 @@ class CatsPlugin(plugin.PyangPlugin):
                 self.name_prefix = ""        
         if ctx.opts.cats_without_replace is not None:
             self.naming_replace=ctx.opts.cats_without_replace=="false"
+        if ctx.opts.cats_without_parent is not None:
+            self.naming_without_parent=ctx.opts.cats_without_parent=="true"
             
     def createElementWithNameValue(self, elemname, name, value):
         anode = self.doc.createElement(elemname)
@@ -519,7 +526,7 @@ class CatsPlugin(plugin.PyangPlugin):
                 prefix = self.name_prefix + '_'
             if middlename != '':
                 prefix = prefix + middlename + '_'
-            if parent is not None:
+            if parent is not None and not self.naming_without_parent:
                 if stmt.i_orig_module.arg != stmt.i_module.arg and stmt.i_uses_top:
                     if stmt.i_orig_module.arg == stmt.arg:
                         prefix += "___"

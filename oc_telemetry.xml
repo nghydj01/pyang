@@ -1,0 +1,683 @@
+<?xml version="1.0" encoding="utf-8"?>
+  <platform name="DCI" release="R1.0">
+    <property name="endPattern" value="((^[\w-]*@.*[#&amp;gt;]$)|(^.*:~\$$))"/>
+  <object __name="telemetry-system" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaItem name="__prefix" value="oc-telemetry"/>
+      <metaItem name="__uri" value="http://openconfig.net/yang/telemetry"/>
+      <metaItem name="__declaredNS_prefix" value="xc"/>
+      <metaItem name="__declaredNS_URI" value="urn:ietf:params:xml:ns:netconf:base:1.0"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="sensor-groups">
+        <value type="object-name">
+          <option name="oc_tlmSys_snsrGrps"/>
+        </value>
+      </attribute>
+      <attribute name="destination-groups">
+        <value type="object-name">
+          <option name="oc_tlmSys_destnGrps"/>
+        </value>
+      </attribute>
+      <attribute name="subscriptions">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="sensor-groups" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_snsrGrps" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys"/>
+    </metaInfo>
+    <action name="add" type="cli">
+      <attribute name="sensor-group">
+        <value type="object-name">
+          <option name="oc_tlmSys_snsrGrp"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="sensor-group" auto-create="yes" extends="CommonXMLBean" keys="sensor-group-id" name="oc_tlmSys_snsrGrp" nodeType="list" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_snsrGrps"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="sensor-group-id">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="config">
+        <value type="object-name">
+          <option name="oc_tlmSys_snsrGrp_config"/>
+        </value>
+      </attribute>
+      <attribute name="state">
+        <value type="object-name">
+          <option name="oc_tlmSys_snsrGrp_state"/>
+        </value>
+      </attribute>
+      <attribute name="sensor-paths">
+        <value type="object-name">
+          <option name="oc_tlmSys_snsrGrp_snsrPths"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="config" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_snsrGrp_config" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_snsrGrp"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="sensor-group-id">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="state" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_snsrGrp_state" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_snsrGrp"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="sensor-group-id">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="sensor-paths" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_snsrGrp_snsrPths" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_snsrGrp"/>
+    </metaInfo>
+    <action name="add" type="cli">
+      <attribute name="sensor-path">
+        <value type="object-name">
+          <option name="oc_tlmSys_snsrGrp_snsrPth"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="sensor-path" auto-create="yes" extends="CommonXMLBean" keys="path" name="oc_tlmSys_snsrGrp_snsrPth" nodeType="list" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_snsrGrp_snsrPths"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="path">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="config">
+        <value type="object-name">
+          <option name="oc_tlmSys_snsrGrp_snsrPth_config"/>
+        </value>
+      </attribute>
+      <attribute name="state">
+        <value type="object-name">
+          <option name="oc_tlmSys_snsrGrp_snsrPth_state"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="config" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_snsrGrp_snsrPth_config" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_snsrGrp_snsrPth"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="path">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="exclude-filter">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="state" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_snsrGrp_snsrPth_state" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_snsrGrp_snsrPth"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="path">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="exclude-filter">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="destination-groups" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_destnGrps" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys"/>
+    </metaInfo>
+    <action name="add" type="cli">
+      <attribute name="destination-group">
+        <value type="object-name">
+          <option name="oc_tlmSys_destnGrp"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="destination-group" auto-create="yes" extends="CommonXMLBean" keys="group-id" name="oc_tlmSys_destnGrp" nodeType="list" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_destnGrps"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="group-id">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="config">
+        <value type="object-name">
+          <option name="oc_tlmSys_destnGrp_config"/>
+        </value>
+      </attribute>
+      <attribute name="state">
+        <value type="object-name">
+          <option name="oc_tlmSys_destnGrp_state"/>
+        </value>
+      </attribute>
+      <attribute name="destinations">
+        <value type="object-name">
+          <option name="oc_tlmSys_destnGrp_destns"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="config" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_destnGrp_config" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_destnGrp"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="group-id">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="state" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_destnGrp_state" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_destnGrp"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="group-id">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="destinations" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_destnGrp_destns" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_destnGrp"/>
+    </metaInfo>
+    <action name="add" type="cli">
+      <attribute name="destination">
+        <value type="object-name">
+          <option name="oc_tlmSys_destnGrp_destn"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="destination" auto-create="yes" extends="CommonXMLBean" keys="destination-address::destination-port" name="oc_tlmSys_destnGrp_destn" nodeType="list" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_destnGrp_destns"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="destination-address">
+        <value format="union ipv4-address, ipv6-address" type="format"/>
+      </attribute>
+      <attribute name="destination-port">
+        <value range="uint16 " type="integer"/>
+      </attribute>
+      <attribute name="config">
+        <value type="object-name">
+          <option name="oc_tlmSys_destnGrp_destn_config"/>
+        </value>
+      </attribute>
+      <attribute name="state">
+        <value type="object-name">
+          <option name="oc_tlmSys_destnGrp_destn_state"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="config" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_destnGrp_destn_config" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_destnGrp_destn"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="destination-address">
+        <value format="union ipv4-address, ipv6-address" type="format"/>
+      </attribute>
+      <attribute name="destination-port">
+        <value range="uint16 " type="integer"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="state" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_destnGrp_destn_state" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_destnGrp_destn"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="destination-address">
+        <value format="union ipv4-address, ipv6-address" type="format"/>
+      </attribute>
+      <attribute name="destination-port">
+        <value range="uint16 " type="integer"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="subscriptions" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="persistent-subscriptions">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSubs"/>
+        </value>
+      </attribute>
+      <attribute name="dynamic-subscriptions">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_dynSubs"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="persistent-subscriptions" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_perSubs" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs"/>
+    </metaInfo>
+    <action name="add" type="cli">
+      <attribute name="persistent-subscription">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="persistent-subscription" auto-create="yes" extends="CommonXMLBean" keys="name" name="oc_tlmSys_subs_perSub" nodeType="list" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSubs"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="name">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="config">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub_config"/>
+        </value>
+      </attribute>
+      <attribute name="state">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub_state"/>
+        </value>
+      </attribute>
+      <attribute name="sensor-profiles">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub_snsrPrfs"/>
+        </value>
+      </attribute>
+      <attribute name="destination-groups">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub_destnGrps"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="config" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_perSub_config" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSub"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="name">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="local-source-address">
+        <value format="union ipv4-address, ipv6-address" type="format"/>
+      </attribute>
+      <attribute name="originated-qos-marking">
+        <value range="uint8  [0..63]" type="integer"/>
+      </attribute>
+      <attribute name="protocol">
+        <value type="enum">
+          <option name="STREAM_SSH"/>
+          <option name="STREAM_GRPC"/>
+          <option name="STREAM_JSON_RPC"/>
+          <option name="STREAM_THRIFT_RPC"/>
+          <option name="STREAM_WEBSOCKET_RPC"/>
+        </value>
+      </attribute>
+      <attribute name="encoding">
+        <value type="enum">
+          <option name="ENC_XML"/>
+          <option name="ENC_JSON_IETF"/>
+          <option name="ENC_PROTO3"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="state" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_perSub_state" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSub"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="name">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="id">
+        <value range="uint64 " type="integer"/>
+      </attribute>
+      <attribute name="local-source-address">
+        <value format="union ipv4-address, ipv6-address" type="format"/>
+      </attribute>
+      <attribute name="originated-qos-marking">
+        <value range="uint8  [0..63]" type="integer"/>
+      </attribute>
+      <attribute name="protocol">
+        <value type="enum">
+          <option name="STREAM_SSH"/>
+          <option name="STREAM_GRPC"/>
+          <option name="STREAM_JSON_RPC"/>
+          <option name="STREAM_THRIFT_RPC"/>
+          <option name="STREAM_WEBSOCKET_RPC"/>
+        </value>
+      </attribute>
+      <attribute name="encoding">
+        <value type="enum">
+          <option name="ENC_XML"/>
+          <option name="ENC_JSON_IETF"/>
+          <option name="ENC_PROTO3"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="sensor-profiles" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_perSub_snsrPrfs" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSub"/>
+    </metaInfo>
+    <action name="add" type="cli">
+      <attribute name="sensor-profile">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub_snsrPrf"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="sensor-profile" auto-create="yes" extends="CommonXMLBean" keys="sensor-group" name="oc_tlmSys_subs_perSub_snsrPrf" nodeType="list" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSub_snsrPrfs"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="sensor-group">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="config">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub_snsrPrf_config"/>
+        </value>
+      </attribute>
+      <attribute name="state">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub_snsrPrf_state"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="config" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_perSub_snsrPrf_config" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSub_snsrPrf"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="sensor-group">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="sample-interval">
+        <value range="uint64 " type="integer"/>
+      </attribute>
+      <attribute name="heartbeat-interval">
+        <value range="uint64 " type="integer"/>
+      </attribute>
+      <attribute name="suppress-redundant">
+        <value format="boolean " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="state" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_perSub_snsrPrf_state" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSub_snsrPrf"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="sensor-group">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="sample-interval">
+        <value range="uint64 " type="integer"/>
+      </attribute>
+      <attribute name="heartbeat-interval">
+        <value range="uint64 " type="integer"/>
+      </attribute>
+      <attribute name="suppress-redundant">
+        <value format="boolean " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="destination-groups" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_perSub_destnGrps" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSub"/>
+    </metaInfo>
+    <action name="add" type="cli">
+      <attribute name="destination-group">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub_destnGrp"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="destination-group" auto-create="yes" extends="CommonXMLBean" keys="group-id" name="oc_tlmSys_subs_perSub_destnGrp" nodeType="list" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSub_destnGrps"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="group-id">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="config">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub_destnGrp_config"/>
+        </value>
+      </attribute>
+      <attribute name="state">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_perSub_destnGrp_state"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="config" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_perSub_destnGrp_config" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSub_destnGrp"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="group-id">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="state" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_perSub_destnGrp_state" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_perSub_destnGrp"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="group-id">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="dynamic-subscriptions" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_dynSubs" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs"/>
+    </metaInfo>
+    <action name="add" type="cli">
+      <attribute name="dynamic-subscription">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_dynSub"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="dynamic-subscription" auto-create="yes" extends="CommonXMLBean" keys="id" name="oc_tlmSys_subs_dynSub" nodeType="list" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_dynSubs"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="id">
+        <value range="uint64 " type="integer"/>
+      </attribute>
+      <attribute name="state">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_dynSub_state"/>
+        </value>
+      </attribute>
+      <attribute name="sensor-paths">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_dynSub_snsrPths"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="state" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_dynSub_state" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_dynSub"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="id">
+        <value range="uint64 " type="integer"/>
+      </attribute>
+      <attribute name="destination-address">
+        <value format="union ipv4-address, ipv6-address" type="format"/>
+      </attribute>
+      <attribute name="destination-port">
+        <value range="uint16 " type="integer"/>
+      </attribute>
+      <attribute name="sample-interval">
+        <value range="uint64 " type="integer"/>
+      </attribute>
+      <attribute name="heartbeat-interval">
+        <value range="uint64 " type="integer"/>
+      </attribute>
+      <attribute name="suppress-redundant">
+        <value format="boolean " type="format"/>
+      </attribute>
+      <attribute name="originated-qos-marking">
+        <value range="uint8  [0..63]" type="integer"/>
+      </attribute>
+      <attribute name="protocol">
+        <value type="enum">
+          <option name="STREAM_SSH"/>
+          <option name="STREAM_GRPC"/>
+          <option name="STREAM_JSON_RPC"/>
+          <option name="STREAM_THRIFT_RPC"/>
+          <option name="STREAM_WEBSOCKET_RPC"/>
+        </value>
+      </attribute>
+      <attribute name="encoding">
+        <value type="enum">
+          <option name="ENC_XML"/>
+          <option name="ENC_JSON_IETF"/>
+          <option name="ENC_PROTO3"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="sensor-paths" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_dynSub_snsrPths" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_dynSub"/>
+    </metaInfo>
+    <action name="add" type="cli">
+      <attribute name="sensor-path">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_dynSub_snsrPth"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="sensor-path" auto-create="yes" extends="CommonXMLBean" keys="path" name="oc_tlmSys_subs_dynSub_snsrPth" nodeType="list" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_dynSub_snsrPths"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="path">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="state">
+        <value type="object-name">
+          <option name="oc_tlmSys_subs_dynSub_snsrPth_state"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="state" auto-create="yes" extends="CommonXMLBean" name="oc_tlmSys_subs_dynSub_snsrPth_state" nodeType="container" objectType="xmlBean" orig_module="openconfig-telemetry">
+    <metaInfo>
+      <metaInfo name="super" value="oc_tlmSys_subs_dynSub_snsrPth"/>
+    </metaInfo>
+    <action name="set" type="cli">
+      <attribute name="path">
+        <value format="string " type="format"/>
+      </attribute>
+      <attribute name="exclude-filter">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+  </object>
+  <object __name="filter" auto-create="yes" extends="CommonXMLBean" name="oc_filter_get" objectType="xmlBean">
+    <metaInfo>
+      <metaItem name="__uri" value="urn:ietf:params:xml:ns:netconf:base:1.0"/>
+    </metaInfo>
+    <action name="setXMLAttribute" type="cli">
+      <attribute name="type">
+        <value type="enum">
+          <option name="subtree"/>
+          <option name="xpath"/>
+        </value>
+      </attribute>
+    </action>
+    <action name="set" type="cli">
+      <attribute name="select">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+    <action name="add" type="cli">
+      <attribute name="__subtree">
+        <value type="object-name">
+          <option name="oc_tlmSys"/>
+        </value>
+      </attribute>
+    </action>
+  </object>
+  <object __name="filter" auto-create="yes" extends="CommonXMLBean" name="oc_filter_notification" objectType="xmlBean">
+    <metaInfo>
+      <metaItem name="__uri" value="urn:ietf:params:xml:ns:netconf:base:1.0"/>
+      <metaItem name="__declaredNS_prefix" value="xc"/>
+      <metaItem name="__declaredNS_URI" value="urn:ietf:params:xml:ns:netconf:base:1.0"/>
+    </metaInfo>
+    <action name="setXMLAttribute" type="cli">
+      <attribute name="xc:type">
+        <value type="enum">
+          <option name="subtree"/>
+          <option name="xpath"/>
+        </value>
+      </attribute>
+    </action>
+    <action name="set" type="cli">
+      <attribute name="select">
+        <value format="string " type="format"/>
+      </attribute>
+    </action>
+    <action name="add" type="cli">
+      <attribute name="__subtree">
+        <value type="object-name"/>
+      </attribute>
+    </action>
+  </object>
+    <object auto-create="yes" extends="CommonXMLBean" name="oc_Container_RPC" objectType="xmlBean">
+      <action name="set" type="cli">
+        <attribute name="__rpc_name">
+          <value type="object-name"/>
+        </attribute>
+      </action>
+    </object>
+  </platform>

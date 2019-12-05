@@ -1,0 +1,33 @@
+[options]
+prefix=oc
+
+[platform]
+name=DCI
+release=R1.0
+
+[properties]
+endPattern=((^[\w-]*@.*[#&gt;]$)|(^.*:~\$$))
+
+[naming]
+delimiter=-
+
+[naming substitution]
+_telemetrySystem=_tlmSys
+_sensorGroups=_snsrGrps
+_destinationGroups=_destnGrps
+_destnGrps_destinationGroup=_destnGrp
+_destinations=_destns
+_destns_destination=_destn
+_snsrGrps_sensorGroup=_snsrGrp
+_dstGrps_destinationGroup=_dstGrp
+_subscriptions=_subs
+_persistentSubscriptions=_perSubs
+_dynamicSubscriptions=_dynSubs
+_perSubs_persistentSubscription=_perSub
+_dynSubs_dynamicSubscription=_dynSub
+_sensorProfiles=_snsrPrfs
+_snsrPrfs_sensorProfile=_snsrPrf
+_sensorPaths=_snsrPths
+_snsrPths_sensorPath=_snsrPth
+
+[naming deletion]
