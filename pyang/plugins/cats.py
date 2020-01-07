@@ -33,7 +33,7 @@ class CatsPlugin(plugin.PyangPlugin):
         self.naming_without_parent = False
         self.notificationObj = []
         self.buildinType = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
-                           "decimal64","string","boolean","enumeration","bit", "binary","leafref",
+                           "decimal64","string","boolean","enumeration","bits", "binary","leafref",
                            "identityref","empty","union","instance-identifier", "inet:uri"]
         self.integerTye = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
                            "decimal64"]
@@ -133,20 +133,31 @@ class CatsPlugin(plugin.PyangPlugin):
             types = typestr.split("\n")
             type = types[0]
             types = types[1:]
-            if type not in self.buildinType:
-                type = types[0]
-                types = types[1:]
+            hinttype = ''
+            while type not in self.buildinType:
+                if "{rang " in type or \
+                   "{pattern " in type or\
+                   "{length " in type or\
+                   "{fraction-digits " in type:
+                    hinttype += type
+                if len(types) > 0:
+                    type = types[0]
+                    types = types[1:]
+                else:
+                    break
             if type not in self.buildinType and type != "cats_object_name":
                 print("type :%s is not buildin type" % typestr)
                 sys.exit(1)
-            if types is not None and len(types) > 0:
-                hinttype = type + " " + types[0]
+            if len(hinttype) > 1:
+                pass
+            elif types is not None and len(types) > 0:
+                hinttype = type + " " + ' '.join(types)
             else:
                 hinttype = type
             if type in self.integerTye:
                 tmpnode.setAttribute("type", "integer")
                 tmpnode.setAttribute("range", hinttype)
-            elif type == "enumeration":
+            elif type == "enumeration" or type == "bits":
                 if types is not None and len(types) > 0:
                     enums = types[0].split(",")
                     if enums is not None and len(enums) > 0:
@@ -964,6 +975,12 @@ def typestring(node):
                 for enums in t.substmts:
                     s = s + enums.arg + ','
                 s = s + ' '
+            if t.arg == 'bits':
+                found = True
+                s = s + ' '
+                for bit in t.substmts:
+                    s += bit.arg + ','
+                s = s + ' '
             elif t.arg == 'leafref':
                 found = True
                 if node.i_leafref_expanded:
@@ -989,16 +1006,21 @@ def typestring(node):
             typerange = t.search_one('range')
             if typerange is not None:
                 found = True
-                s = s + ' [' + typerange.arg + ']'
+                s = s + ' {range =' + typerange.arg + '}\n'
             length = t.search_one('length')
             if length is not None:
                 found = True
-                s = s + ' {length = ' + length.arg + '}'
+                s = s + ' {length =' + length.arg + '}\n'
 
             pattern = t.search_one('pattern')
             if pattern is not None: # truncate long patterns
                 found = True
-                s = s + ' {pattern = ' + pattern.arg + '}'
+                s = s + ' {pattern = ' + pattern.arg + '}\n'
+                
+            fractiondigits = t.search_one('fraction-digits')
+            if fractiondigits is not None:
+                found = True
+                s = s + ' {fraction-digits = ' + fractiondigits.arg + '}\n'
         return s
         
     s = get_nontypedefstring(node)
@@ -1027,5 +1049,6 @@ def typestring(node):
                 return
             typedef = statements.search_typedef(pmodule, name)
         if typedef != None:
-            s = s + get_nontypedefstring(typedef)
+#            s = s + get_nontypedefstring(typedef)
+            s = s + typestring(typedef)
     return s

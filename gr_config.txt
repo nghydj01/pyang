@@ -1,0 +1,13 @@
+[options]
+prefix=grv
+
+[platform]
+name=DCI
+release=R1.0
+
+[properties]
+endPattern=((^[\w-]*@.*[#&gt;]$)|(^.*:~\$$))
+
+[naming]
+delimiter=-
+
