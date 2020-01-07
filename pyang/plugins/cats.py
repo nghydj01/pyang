@@ -31,6 +31,7 @@ class CatsPlugin(plugin.PyangPlugin):
         self.rpcObj = []
         self.naming_replace = True
         self.naming_without_parent = False
+        self.naming_without_module = False
         self.notificationObj = []
         self.buildinType = ["int8","int16","int32","int64","uint8","uint16","uint32","uint64",
                            "decimal64","string","boolean","enumeration","bits", "binary","leafref",
@@ -64,6 +65,10 @@ class CatsPlugin(plugin.PyangPlugin):
                                  dest="cats_without_parent",
                                  type="string",
                                  help="Print don't prefix parent's name"),
+            optparse.make_option("--cats-name-without-module",
+                                 dest="cats_without_module",
+                                 type="string",
+                                 help="Print don't prefix module name"),
             optparse.make_option("--cats-config",
                                  type="string",
                                  dest="cats_config",
@@ -116,6 +121,8 @@ class CatsPlugin(plugin.PyangPlugin):
             self.naming_replace=ctx.opts.cats_without_replace=="false"
         if ctx.opts.cats_without_parent is not None:
             self.naming_without_parent=ctx.opts.cats_without_parent=="true"
+        if ctx.opts.cats_without_module is not None:
+            self.naming_without_module=ctx.opts.cats_without_module=="true"
             
     def createElementWithNameValue(self, elemname, name, value):
         anode = self.doc.createElement(elemname)
@@ -537,20 +544,32 @@ class CatsPlugin(plugin.PyangPlugin):
                 prefix = self.name_prefix + '_'
             if middlename != '':
                 prefix = prefix + middlename + '_'
-            if parent is not None and not self.naming_without_parent:
-                if stmt.i_orig_module.arg != stmt.i_module.arg and stmt.i_uses_top:
+            if parent is not None:
+                if stmt.i_orig_module.arg != stmt.i_module.arg and \
+                    stmt.i_uses_top and not self.naming_without_module:
                     if stmt.i_orig_module.arg == stmt.arg:
                         prefix += "___"
                     else:
                         prefix += (stmt.i_orig_module.arg+"__")
-                elif stmt.i_module.arg != stmt.parent.i_module.arg:
+                elif stmt.i_module.arg != stmt.parent.i_module.arg and \
+                    not self.naming_without_module:
                     if stmt.i_module.arg.endswith(stmt.arg):
                         prefix += "__"
                     else:
                         prefix += (stmt.i_module.arg+"__")
                 else:  
-                    parentname=parent.getAttribute("name")
-                    prefix = parentname + "_"
+                    found=False
+                    if self.config.has_section('naming add parent'):
+                        items = self.config.items('naming add parent')
+                        for key, value in items: 
+                            if value.find(":"+name+":")>=0:
+                                parentname=parent.getAttribute("name")
+                                prefix = parentname + "_"
+                                found=True
+                                break;
+                    if not found and not self.naming_without_parent:
+                        parentname=parent.getAttribute("name")
+                        prefix = parentname + "_"
             else: 
                 nodename = name
                 
@@ -562,6 +581,8 @@ class CatsPlugin(plugin.PyangPlugin):
                 childxmlnode = self.maps[nodename]
                 omod = childxmlnode.getAttribute("orig_module")
                 oname = childxmlnode.getAttribute("__name")
+                print("omod:%s, cmod:%s, oname:%s, cname:%s" % \
+                      (omod, stmt.i_orig_module.arg,oname,stmt.arg))
                 assert omod == stmt.i_orig_module.arg and oname == stmt.arg
                 return (childxmlnode, False)
 #             try:
