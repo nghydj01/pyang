@@ -545,18 +545,36 @@ class CatsPlugin(plugin.PyangPlugin):
             if middlename != '':
                 prefix = prefix + middlename + '_'
             if parent is not None:
-                if stmt.i_orig_module.arg != stmt.i_module.arg and \
-                    stmt.i_uses_top and not self.naming_without_module:
-                    if stmt.i_orig_module.arg == stmt.arg:
-                        prefix += "___"
-                    else:
-                        prefix += (stmt.i_orig_module.arg+"__")
-                elif stmt.i_module.arg != stmt.parent.i_module.arg and \
-                    not self.naming_without_module:
-                    if stmt.i_module.arg.endswith(stmt.arg):
-                        prefix += "__"
-                    else:
-                        prefix += (stmt.i_module.arg+"__")
+                if stmt.i_orig_module.arg != stmt.i_module.arg and stmt.i_uses_top:
+                    found=False
+                    if self.config.has_section('naming add module'):
+                        items = self.config.items('naming add module')
+                        for key, value in items: 
+                            if value.find(":"+name+":")>=0:
+                                prefix += stmt.i_orig_module.arg + "_"
+                                found=True
+                                break;
+                    if not found:
+                        if not self.naming_without_module:
+                            if stmt.i_orig_module.arg == stmt.arg:
+                                prefix += "___"
+                            else:
+                                prefix += (stmt.i_orig_module.arg+"__")
+                elif stmt.i_module.arg != stmt.parent.i_module.arg:
+                    found=False
+                    if self.config.has_section('naming add module'):
+                        items = self.config.items('naming add module')
+                        for key, value in items: 
+                            if value.find(":"+name+":")>=0:
+                                prefix += stmt.i_module.arg + "_"
+                                found=True
+                                break;
+                    if not found:
+                        if not self.naming_without_module:
+                            if stmt.i_module.arg.endswith(stmt.arg):
+                                prefix += "__"
+                            else:
+                                prefix += (stmt.i_module.arg+"__")
                 else:  
                     found=False
                     if self.config.has_section('naming add parent'):
@@ -669,7 +687,7 @@ class CatsPlugin(plugin.PyangPlugin):
                 metaInfo = self.doc.createElement("metaInfo")
             else:
                 metaInfo = metaInfos[0]
-            metaInfo.appendChild(self.createElementWithNameValue("metaInfo", "super", parent.getAttribute("name")))
+            metaInfo.appendChild(self.createElementWithNameValue("metaItem", "super", parent.getAttribute("name")))
             child.appendChild(metaInfo)  
 
         def createAction(parent,child,type):

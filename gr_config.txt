@@ -11,5 +11,8 @@ endPattern=((^[\w-]*@.*[#&gt;]$)|(^.*:~\$$))
 [naming]
 delimiter=-
 
+[naming add module]
+namelist=:statistics:
+
 [naming add parent]
 namelist=:statistics:next-hop:
