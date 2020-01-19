@@ -25,6 +25,8 @@ class CatsPlugin(plugin.PyangPlugin):
         plugin.PyangPlugin.__init__(self, 'cats')
         self.doc = mndom.Document()
         self.maps = {}
+        self.newmaps = {}
+        self.objectIDs = []
         self.diffns = []
         self.objnames = []
         self.topObj = []
@@ -594,7 +596,11 @@ class CatsPlugin(plugin.PyangPlugin):
             if prefix != '':
                 nodename = prefix + name
             nodename = revisename(nodename)
-            commonnodename=stmt.i_orig_module.arg + stmt.arg
+            objectID = str(stmt.pos.line) + '$' + stmt.pos.ref
+            if self.newmaps.__contains__(objectID):
+                print (stmt)
+                print (self.newmaps[objectID])
+                return (self.newmaps[objectID], False)
             if self.maps.__contains__(nodename):
                 childxmlnode = self.maps[nodename]
                 omod = childxmlnode.getAttribute("orig_module")
@@ -621,6 +627,7 @@ class CatsPlugin(plugin.PyangPlugin):
             childxmlnode.setAttribute("orig_module", stmt.i_orig_module.arg)
             childxmlnode.appendChild(metainfonode)
             self.maps[nodename] = childxmlnode
+            self.newmaps[objectID]=childxmlnode
             if parent is None:
                 if nodetype == "notification":
                     self.notificationObj.append(nodename)
