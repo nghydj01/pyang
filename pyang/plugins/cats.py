@@ -673,8 +673,8 @@ class CatsPlugin(plugin.PyangPlugin):
                     metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__ns_when", 
                                                                         "parent in "+parentxmlnode.getAttribute("name")))
                 else:
-                    ov = whenItem.getAttribute("value")
-                    whenItem.setAttribute("value",ov + ","+parentxmlnode.getAttribute("name"))
+                    ov = whenItem[0].getAttribute("value")
+                    whenItem[0].setAttribute("value",ov + ","+parentxmlnode.getAttribute("name"))
             if adddeclareNS:
                 metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__declaredNS_prefix", "xc"))
                 metainfonode.appendChild(self.createElementWithNameValue("metaItem", "__declaredNS_URI", "urn:ietf:params:xml:ns:netconf:base:1.0"))

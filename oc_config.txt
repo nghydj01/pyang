@@ -12,6 +12,16 @@ endPattern=((^[\w-]*@.*[#&gt;]$)|(^.*:~\$$))
 delimiter=-
 
 [naming substitution]
+_components_component=_component
+_component_subcomponents=_subcomponents
+_subcomponents_subcomponent=_subcomponent
+_properties_property=_property
+_state_temperature=_temperature
+_state_memory=_memory
+PlatformPort__=port_
+___transceiver=_transceiver
+transceiver_physicalChannels=physical_channels
+physical_channels_channel=physical_channel
 _telemetrySystem=_tlmSys
 _sensorGroups=_snsrGrps
 _destinationGroups=_destnGrps
@@ -31,3 +41,4 @@ _sensorPaths=_snsrPths
 _snsrPths_sensorPath=_snsrPth
 
 [naming deletion]
+openconfig=
