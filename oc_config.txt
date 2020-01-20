@@ -11,6 +11,12 @@ endPattern=((^[\w-]*@.*[#&gt;]$)|(^.*:~\$$))
 [naming]
 delimiter=-
 
+[naming module add parent]
+namelist=:address-families:interface-ref:ldp:segment-routing:neighbors:subtlvs:authentication:afi-safi:timers:events:
+
+[naming module add line]
+namelist=:state:key:af:level:config:
+
 [naming substitution]
 _components_component=_component
 _component_subcomponents=_subcomponents
@@ -22,6 +28,8 @@ PlatformPort__=port_
 ___transceiver=_transceiver
 transceiver_physicalChannels=physical_channels
 physical_channels_channel=physical_channel
+openconfigTerminalDevice__opticalChannel=optical_channel
+terminalDevice=term
 _telemetrySystem=_tlmSys
 _sensorGroups=_snsrGrps
 _destinationGroups=_destnGrps

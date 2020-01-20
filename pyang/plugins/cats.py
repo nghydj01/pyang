@@ -26,7 +26,7 @@ class CatsPlugin(plugin.PyangPlugin):
         self.doc = mndom.Document()
         self.maps = {}
         self.newmaps = {}
-        self.objectIDs = []
+        self.orignodename = []
         self.diffns = []
         self.objnames = []
         self.topObj = []
@@ -375,7 +375,34 @@ class CatsPlugin(plugin.PyangPlugin):
         self.add_platform_attribute(platform)
         self.add_platform_property(platform)
         return platform
-            
+
+    def writeTofile(self, fileName, container):
+        tmpFile=None
+        if fileName == None:
+            if sys.version < '3':
+                namefd = codecs.getwriter('utf8')(sys.stdout)
+            else:
+                namefd = sys.stdout
+        else:
+            tmpfile = fileName + ".tmp"
+            if sys.version < '3':
+                namefd = codecs.open(tmpfile, "w+", encoding="utf-8")
+            else:
+                namefd = io.open(tmpfile, "w+", encoding="utf-8")
+        try:
+            for key, value in container:
+                namefd.write(key+"\n")            
+        except:
+            if tmpfile != None:
+                namefd.close()
+                os.remove(tmpfile)
+            raise
+        if tmpfile != None:
+            namefd.close()
+            if os.path.isfile(fileName):
+                os.remove(fileName)
+            os.rename(tmpfile, fileName)
+        
     def emit(self, ctx, modules, fd):
         self.init_cats_options(ctx)
         platform = self.init_cats_model()
@@ -386,33 +413,14 @@ class CatsPlugin(plugin.PyangPlugin):
         self.add_rpc_bean(platform)
         self.doc.writexml(fd, indent='  ', addindent='  ', newl='\n', encoding='utf-8')
 
-        tmpfile = None
-        if ctx.opts.cats_names_file == None:
-            if sys.version < '3':
-                self.namefd = codecs.getwriter('utf8')(sys.stdout)
-            else:
-                self.namefd = sys.stdout
-        else:
-            tmpfile = ctx.opts.cats_names_file + ".tmp"
-            if sys.version < '3':
-                self.namefd = codecs.open(tmpfile, "w+", encoding="utf-8")
-            else:
-                self.namefd = io.open(tmpfile, "w+", encoding="utf-8")
-        try:
-            for key, value in self.maps.items():
-                self.namefd.write(key+"\n")            
-        except:
-            if tmpfile != None:
-                self.namefd.close()
-                os.remove(tmpfile)
-            raise
-        if tmpfile != None:
-            self.namefd.close()
-            if os.path.isfile(ctx.opts.cats_names_file):
-                os.remove(ctx.opts.cats_names_file)
-            os.rename(tmpfile, ctx.opts.cats_names_file)
         for value in self.diffns:
             print(value + "\n")
+        self.writeTofile(ctx.opts.cats_names_file, self.maps.items())
+        if ctx.opts.cats_names_file is None:
+            tmpFileName = None
+        else:
+            tmpFileName = str(ctx.opts.cats_names_file) + ".orig.txt"
+        self.writeTofile(tmpFileName, self.maps.items())
             
     def emit_tree(self, platformnode, ctx, modules):
         for module in modules:    
@@ -517,7 +525,7 @@ class CatsPlugin(plugin.PyangPlugin):
                 snames = nodename.split(self.config['naming']['delimiter'])
                 if len(snames) > 1:
                     nodename=snames[0]+''.join([nn.capitalize() for nn in snames[1:]])
-
+            self.orignodename.append(nodename)
             if not self.naming_replace:
                 return nodename
             
@@ -532,7 +540,9 @@ class CatsPlugin(plugin.PyangPlugin):
                     nodename = re.sub(k,'',nodename)
             
             if len(nodename) > 4:
-                nodename = nodename[0:3] + nodename[3:4].lower() + nodename[4:]
+                nodename = nodename[0:len(self.name_prefix)+1] + \
+                nodename[len(self.name_prefix)+1:len(self.name_prefix)+2].lower() + \
+                nodename[len(self.name_prefix)+2:]
             return nodename
                 
         def createElement(parent, stmt, name, nodetype):
@@ -549,8 +559,8 @@ class CatsPlugin(plugin.PyangPlugin):
             if parent is not None:
                 if stmt.i_orig_module.arg != stmt.i_module.arg and stmt.i_uses_top:
                     found=False
-                    if self.config.has_section('naming add module'):
-                        items = self.config.items('naming add module')
+                    if self.config.has_section('naming module add module'):
+                        items = self.config.items('naming module add module')
                         for key, value in items: 
                             if value.find(":"+name+":")>=0:
                                 prefix += stmt.i_orig_module.arg + "_"
@@ -562,10 +572,22 @@ class CatsPlugin(plugin.PyangPlugin):
                                 prefix += "___"
                             else:
                                 prefix += (stmt.i_orig_module.arg+"__")
+                    if self.config.has_section('naming module add parent'):
+                        items = self.config.items('naming module add parent')
+                        for key, value in items: 
+                            if value.find(":"+name+":")>=0:
+                                prefix += stmt.parent.arg + "_"
+                                break;
+                    if self.config.has_section('naming module add line'):
+                        items = self.config.items('naming module add line')
+                        for key, value in items: 
+                            if value.find(":"+name+":")>=0:
+                                prefix += str(stmt.pos.line) + "_"
+                                break;
                 elif stmt.i_module.arg != stmt.parent.i_module.arg:
                     found=False
-                    if self.config.has_section('naming add module'):
-                        items = self.config.items('naming add module')
+                    if self.config.has_section('naming module add module'):
+                        items = self.config.items('naming module add module')
                         for key, value in items: 
                             if value.find(":"+name+":")>=0:
                                 prefix += stmt.i_module.arg + "_"
@@ -577,10 +599,22 @@ class CatsPlugin(plugin.PyangPlugin):
                                 prefix += "__"
                             else:
                                 prefix += (stmt.i_module.arg+"__")
+                    if self.config.has_section('naming module add parent'):
+                        items = self.config.items('naming module add parent')
+                        for key, value in items: 
+                            if value.find(":"+name+":")>=0:
+                                prefix += stmt.parent.arg + "_"
+                                break;
+                    if self.config.has_section('naming module add line'):
+                        items = self.config.items('naming module add line')
+                        for key, value in items: 
+                            if value.find(":"+name+":")>=0:
+                                prefix += str(stmt.pos.line) + "_"
+                                break;
                 else:  
                     found=False
-                    if self.config.has_section('naming add parent'):
-                        items = self.config.items('naming add parent')
+                    if self.config.has_section('naming parent add parent'):
+                        items = self.config.items('naming parent add parent')
                         for key, value in items: 
                             if value.find(":"+name+":")>=0:
                                 parentname=parent.getAttribute("name")
@@ -596,19 +630,31 @@ class CatsPlugin(plugin.PyangPlugin):
             if prefix != '':
                 nodename = prefix + name
             nodename = revisename(nodename)
+            
             objectID = str(stmt.pos.line) + '$' + stmt.pos.ref
+            print(objectID)
             if self.newmaps.__contains__(objectID):
-                print (stmt)
-                print (self.newmaps[objectID])
-                return (self.newmaps[objectID], False)
-            if self.maps.__contains__(nodename):
-                childxmlnode = self.maps[nodename]
-                omod = childxmlnode.getAttribute("orig_module")
-                oname = childxmlnode.getAttribute("__name")
-                print("omod:%s, cmod:%s, oname:%s, cname:%s" % \
-                      (omod, stmt.i_orig_module.arg,oname,stmt.arg))
-                assert omod == stmt.i_orig_module.arg and oname == stmt.arg
+                childxmlnode = self.newmaps[objectID]
+                onodename = childxmlnode.getAttribute("name")
+                print('cnodename:%s, onodename:%s' % (nodename,onodename))
                 return (childxmlnode, False)
+            if self.maps.__contains__(nodename):
+                tmpxmlnode = self.maps[nodename]
+                ooid = tmpxmlnode.getAttribute("oid")
+                print('unexpected name conflict:%s with raw name:%s', 
+                      (nodename,stmt.arg))
+                print('current id:%s, original id:%s' % (objectID, ooid))
+                sys.exit(1)
+#             if self.maps.__contains__(nodename):
+#                 print("---------------------" + nodename)
+#                 childxmlnode = self.maps[nodename]
+#                 omod = childxmlnode.getAttribute("orig_module")
+#                 oname = childxmlnode.getAttribute("__name")
+#                 ooid = childxmlnode.getAttribute("oid")
+#                 print("omod:%s, cmod:%s, oname:%s, cname:%s, oid:%s" % \
+#                       (omod, stmt.i_orig_module.arg,oname,stmt.arg,ooid))
+#                 assert omod == stmt.i_orig_module.arg and oname == stmt.arg and ooid == objectID
+#                 return (childxmlnode, False)
 #             try:
 #                 childxmlnode = self.maps[nodename]
 #                 return (childxmlnode, False)
@@ -620,6 +666,7 @@ class CatsPlugin(plugin.PyangPlugin):
             childxmlnode.setAttribute("objectType","xmlBean")
             childxmlnode.setAttribute("auto-create","yes")
             childxmlnode.setAttribute("extends","CommonXMLBean")
+            childxmlnode.setAttribute("oid",objectID)
             metainfonode=self.doc.createElement("metaInfo")
 #            metainfonode.appendChild(createElementWithNameValue("metaItem","orig_module",stmt.i_orig_module.arg))
 #            metainfonode.appendChild(createElementWithNameValue("metaItem","__name",name))
