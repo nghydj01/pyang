@@ -15,6 +15,7 @@ import xml.dom.minidom as mndom
 
 from pyang import plugin
 from pyang import statements
+from pyang import util
 from pip._internal.cli.cmdoptions import platform
 
 def pyang_plugin_init():
@@ -524,7 +525,7 @@ class CatsPlugin(plugin.PyangPlugin):
             if self.config.has_option("naming", "delimiter"):
                 snames = nodename.split(self.config['naming']['delimiter'])
                 if len(snames) > 1:
-                    nodename=snames[0]+''.join([nn.capitalize() for nn in snames[1:]])
+                    nodename=snames[0]+'_'+'_'.join([nn for nn in snames[1:]])
             self.orignodename.append(nodename)
             if not self.naming_replace:
                 return nodename
@@ -556,7 +557,18 @@ class CatsPlugin(plugin.PyangPlugin):
                 prefix = self.name_prefix + '_'
             if middlename != '':
                 prefix = prefix + middlename + '_'
-            if parent is not None:
+            
+            autoContainer = True    
+            if self.config.has_section('naming hard code container'):
+                objectID = stmt.pos.ref + '$' + str(stmt.pos.line)
+                items = self.config.items('naming hard code container')
+                for key, value in items:
+                    if objectID.endswith(key):
+                        prefix = prefix + value + '_'
+                        autoContainer = False
+                        break
+                        
+            if parent is not None and autoContainer:
                 if stmt.i_orig_module.arg != stmt.i_module.arg and stmt.i_uses_top:
                     found=False
                     if self.config.has_section('naming module add module'):
@@ -631,17 +643,17 @@ class CatsPlugin(plugin.PyangPlugin):
                 nodename = prefix + name
             nodename = revisename(nodename)
             
-            objectID = str(stmt.pos.line) + '$' + stmt.pos.ref
+            objectID = stmt.pos.ref + '$' + str(stmt.pos.line)
             print(objectID)
             if self.newmaps.__contains__(objectID):
                 childxmlnode = self.newmaps[objectID]
                 onodename = childxmlnode.getAttribute("name")
-                print('cnodename:%s, onodename:%s' % (nodename,onodename))
+                print('COMMON: cnodename:%s, onodename:%s' % (nodename,onodename))
                 return (childxmlnode, False)
             if self.maps.__contains__(nodename):
                 tmpxmlnode = self.maps[nodename]
                 ooid = tmpxmlnode.getAttribute("oid")
-                print('unexpected name conflict:%s with raw name:%s', 
+                print('unexpected name conflict:%s with raw name:%s' % 
                       (nodename,stmt.arg))
                 print('current id:%s, original id:%s' % (objectID, ooid))
                 sys.exit(1)
@@ -1035,7 +1047,7 @@ def identitystring(node, baseid):
     else:
         # this is a prefixed name, check the imported modules
         err = []
-        pmodule = statements.prefix_to_module(t.i_module,prefix,t.pos,err)
+        pmodule = util.prefix_to_module(t.i_module,prefix,t.pos,err)
         if pmodule is None:
             return baseid
     identities = pmodule.search('identity')
@@ -1123,21 +1135,15 @@ def typestring(node):
         # chase typedef
         type_namespace = None
         i_type_name = None
-        name = t.arg
-        if name.find(":") == -1:
-            prefix = None
-        else:
-            [prefix, name] = name.split(':', 1)
+        prefix, name = util.split_identifier(t.arg)
         if prefix is None or t.i_module.i_prefix == prefix:
             # check local typedefs
             pmodule = node.i_module
-            typedef = statements.search_typedef(pmodule, name)
-            if typedef is None:
-                typedef = statements.search_typedef(t, name)
+            typedef = statements.search_typedef(t, name)
         else:
             # this is a prefixed name, check the imported modules
             err = []
-            pmodule = statements.prefix_to_module(t.i_module,prefix,t.pos,err)
+            pmodule = util.prefix_to_module(t.i_module, prefix, t.pos, err)
             if pmodule is None:
                 return
             typedef = statements.search_typedef(pmodule, name)

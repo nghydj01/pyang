@@ -14,5 +14,14 @@ delimiter=-
 [naming module add module]
 namelist=:statistics:
 
+[naming module add parent]
+namelist=:modules:
+
 [naming parent add parent]
 namelist=:statistics:next-hop:
+
+[naming hard code container]
+services/otn/tdm.yang$77=oc
+services/otn/tdm.yang$89=stm
+equipment/port.yang$506=port
+equipment/port.yang$525=subport
